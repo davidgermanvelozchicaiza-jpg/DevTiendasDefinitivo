@@ -1919,7 +1919,7 @@ function clearFotos(tab,id){
 function delRecFoto(tab,id,idx){
   const rec=R[tab]?.find(r=>String(r.id)===id);
   if(!rec||!rec.foto2) return;
-  undoPush('Borrar foto — '+(rec.tienda||'')+(rec.ref?' REF '+rec.ref:''));
+  undoPush('Borrar foto — '+(rec.tienda||'')+(rec.ref?' REF '+rec.ref:''), true);
   rec.foto2.splice(idx,1);
   saveTab(tab);
   if(tab==='rt')renderRT();else if(tab==='dg')renderDG();else if(tab==='rs')renderRS();else renderREQ();
@@ -2622,8 +2622,17 @@ async function exportPDFTienda(){
     doc.text(`Revisión en Tienda — ${label}   |   ${new Date().toLocaleString('es-EC')}   |   Pág. ${pg}`,ML,y+11);
     doc.setDrawColor(204,0,0);doc.setLineWidth(0.4);doc.line(ML,y+13,pW-ML,y+13);
     const hy=y+15;let x=ML;
-    doc.setFillColor(204,0,0);doc.setTextColor(255,255,255);doc.setFontSize(5.2);doc.setFont(undefined,'bold');
-    cW.forEach((w,i)=>{doc.rect(x,hy,w,HH,'F');doc.text(cN[i],x+1,hy+4.6,{maxWidth:w-1.5});x+=w;});
+    doc.setFont(undefined,'bold');
+    cW.forEach((w,i)=>{
+      doc.setFillColor(204,0,0);doc.rect(x,hy,w,HH,'F');
+      const fs2=w<=8?5:w<=14?5.5:9;
+      doc.setFontSize(fs2);doc.setTextColor(255,255,255);
+      const lns=doc.splitTextToSize(cN[i],w-1.5);
+      const lh2=fs2*0.42+2.8;
+      const ty=hy+(HH-lns.length*lh2)/2+lh2*0.72;
+      lns.forEach((ln,li)=>{const tw=doc.getTextWidth(ln);doc.text(ln,x+(w-tw)/2,ty+li*lh2);});
+      x+=w;
+    });
     doc.setFont(undefined,'normal');return hy+HH;
   }
   let pn=1,y=drawHdr(3,pn),rn=0;
@@ -3021,7 +3030,7 @@ function doDelRec(){
   const {tab,id}=_delPend;
   if(!tab||!id) return;
   const recDel=R[tab].find(r=>String(r.id)===id);
-  undoPush('Borrar '+(recDel?((recDel.tienda||'')+(recDel.ref?' REF '+recDel.ref:'')):'registro'));
+  undoPush('Borrar '+(recDel?((recDel.tienda||'')+(recDel.ref?' REF '+recDel.ref:'')):'registro'), true);
   R[tab]=R[tab].filter(r=>String(r.id)!==id);
   // DG: eliminación atómica — solo borra este nodo, no toca otros
   if(tab==='dg') sDGDelete(id);
@@ -3379,10 +3388,15 @@ async function exportPDF(mode){
     doc.line(ML,y+13,pW-ML,y+13);
     const hy=y+15;
     let x=ML;
-    doc.setFillColor(204,0,0);doc.setTextColor(255,255,255);doc.setFontSize(5.2);doc.setFont(undefined,'bold');
+    doc.setFont(undefined,'bold');
     cW.forEach((w,i)=>{
-      doc.rect(x,hy,w,HH,'F');
-      doc.text(cN[i],x+1,hy+4.6,{maxWidth:w-1.5});
+      doc.setFillColor(204,0,0);doc.rect(x,hy,w,HH,'F');
+      const fs2=w<=8?5:w<=14?5.5:9;
+      doc.setFontSize(fs2);doc.setTextColor(255,255,255);
+      const lns=doc.splitTextToSize(cN[i],w-1.5);
+      const lh2=fs2*0.42+2.8;
+      const ty=hy+(HH-lns.length*lh2)/2+lh2*0.72;
+      lns.forEach((ln,li)=>{const tw=doc.getTextWidth(ln);doc.text(ln,x+(w-tw)/2,ty+li*lh2);});
       x+=w;
     });
     doc.setFont(undefined,'normal');
@@ -4058,8 +4072,7 @@ let _dgAdminMode = false;
 
 // Por defecto DG muestra todas las tiendas — el usuario filtra manualmente
 function autoFiltrarDGPorTienda(){
-  // No aplicar filtro automático: mostrar todas las tiendas por defecto
-  // Cada usuario filtrará por su tienda manualmente desde el selector
+  // Mantener "Todas las tiendas" como default — no cambiar el filtro automáticamente
 }
 
 
@@ -4320,17 +4333,32 @@ function cancelarSalirApp(){
 const _undoStack = [];
 const _UNDO_MAX  = 10;
 
-function undoPush(desc){
-  // Snapshot liviano: solo IDs y datos críticos de R
+function _stripFotos(arr){
+  // Clonar registros SIN foto2 para ahorrar memoria en snapshots
+  return arr.map(r=>{
+    const c=Object.assign({},r);
+    delete c.foto2;
+    return c;
+  });
+}
+
+function undoPush(desc, keepFotos){
+  // keepFotos=true solo cuando se borra una foto/registro (necesitamos recuperarla)
+  const cloneArr = keepFotos
+    ? arr => JSON.parse(JSON.stringify(arr))
+    : arr => _stripFotos(arr);
   _undoStack.push({
     desc,
     ts: Date.now(),
-    rt:  JSON.parse(JSON.stringify(R.rt)),
-    dg:  JSON.parse(JSON.stringify(R.dg)),
-    rs:  JSON.parse(JSON.stringify(R.rs)),
-    req: JSON.parse(JSON.stringify(R.req)),
+    keepFotos: !!keepFotos,
+    rt:  cloneArr(R.rt),
+    dg:  cloneArr(R.dg),
+    rs:  cloneArr(R.rs),
+    req: cloneArr(R.req),
   });
-  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  // Máximo 5 snapshots con fotos, 10 sin fotos
+  const max = keepFotos ? 3 : _UNDO_MAX;
+  while(_undoStack.length > max) _undoStack.shift();
   _undoRefreshBtn();
 }
 
