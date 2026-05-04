@@ -474,7 +474,6 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
 <div class="fb-banner sticky-nav" style="top:67px;">
   <span><span class="fb-dot wait" id="fb-dot"></span><span id="fb-status">⏳ Conectando...</span></span>
   <span id="fb-last" style="opacity:.8;font-size:.69rem;"></span>
-  <button id="undo-btn" onclick="undoLast()" disabled title="Deshacer último movimiento (Ctrl+Z)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.4);border-radius:6px;padding:3px 10px;font-size:.72rem;cursor:not-allowed;font-family:'Nunito',sans-serif;font-weight:700;transition:all .2s;">↩️ Deshacer</button>
   <button onclick="fbSync()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:3px 10px;font-size:.72rem;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;">🔄 Sincronizar</button>
 </div>
 
@@ -1919,7 +1918,6 @@ function clearFotos(tab,id){
 function delRecFoto(tab,id,idx){
   const rec=R[tab]?.find(r=>String(r.id)===id);
   if(!rec||!rec.foto2) return;
-  undoPush('Borrar foto — '+(rec.tienda||'')+(rec.ref?' REF '+rec.ref:''), true);
   rec.foto2.splice(idx,1);
   saveTab(tab);
   if(tab==='rt')renderRT();else if(tab==='dg')renderDG();else if(tab==='rs')renderRS();else renderREQ();
@@ -2014,7 +2012,6 @@ function doSave(){
     rec.reqArea=document.getElementById('req-area')?.value||'';
     rec.reqStatus='Pendiente';
   }
-  undoPush('Guardar '+tab.toUpperCase()+' — '+(rec.tienda||'')+(rec.ref?' REF '+rec.ref:''));
   R[tab].push(rec);
   if(dec==='Devolución'&&tab!=='dg'){
     const clone=JSON.parse(JSON.stringify(rec));
@@ -2940,7 +2937,6 @@ function eDec(tab,id,val){
 
   // RS: si se selecciona "Revisar en Tiendas" → copiar a RT y ELIMINAR de RS
   if(tab==='rs' && val==='Revisar en Tiendas'){
-    undoPush('Mover RS → RT: '+(rec.tienda||'')+' '+(rec.ref||''));
     const srcId=String(rec.id);
     if(!R.rt.some(d=>String(d._srcId)===srcId)){
       const clone=JSON.parse(JSON.stringify(rec));
@@ -3030,7 +3026,6 @@ function doDelRec(){
   const {tab,id}=_delPend;
   if(!tab||!id) return;
   const recDel=R[tab].find(r=>String(r.id)===id);
-  undoPush('Borrar '+(recDel?((recDel.tienda||'')+(recDel.ref?' REF '+recDel.ref:'')):'registro'), true);
   R[tab]=R[tab].filter(r=>String(r.id)!==id);
   // DG: eliminación atómica — solo borra este nodo, no toca otros
   if(tab==='dg') sDGDelete(id);
@@ -4326,90 +4321,7 @@ function cancelarSalirApp(){
   document.getElementById('ov-salir-app').classList.remove('show');
 }
 
-// ─────────────────────────────────────────────
-// DESHACER — stack de snapshots (máx 10)
-// Guarda snapshot antes de: borrar registro, borrar foto, guardar nuevo registro
-// ─────────────────────────────────────────────
-const _undoStack = [];
-const _UNDO_MAX  = 10;
 
-function _stripFotos(arr){
-  // Clonar registros SIN foto2 para ahorrar memoria en snapshots
-  return arr.map(r=>{
-    const c=Object.assign({},r);
-    delete c.foto2;
-    return c;
-  });
-}
-
-function undoPush(desc, keepFotos){
-  // keepFotos=true solo cuando se borra una foto/registro (necesitamos recuperarla)
-  const cloneArr = keepFotos
-    ? arr => JSON.parse(JSON.stringify(arr))
-    : arr => _stripFotos(arr);
-  _undoStack.push({
-    desc,
-    ts: Date.now(),
-    keepFotos: !!keepFotos,
-    rt:  cloneArr(R.rt),
-    dg:  cloneArr(R.dg),
-    rs:  cloneArr(R.rs),
-    req: cloneArr(R.req),
-  });
-  // Máximo 5 snapshots con fotos, 10 sin fotos
-  const max = keepFotos ? 3 : _UNDO_MAX;
-  while(_undoStack.length > max) _undoStack.shift();
-  _undoRefreshBtn();
-}
-
-function _undoRefreshBtn(){
-  const btn = document.getElementById('undo-btn');
-  if(!btn) return;
-  if(_undoStack.length){
-    const last = _undoStack[_undoStack.length-1];
-    btn.disabled = false;
-    btn.style.cursor = 'pointer';
-    btn.style.color = '#fff';
-    btn.style.background = 'rgba(251,191,36,.25)';
-    btn.style.border = '1px solid rgba(251,191,36,.5)';
-    btn.title = `Deshacer: ${last.desc}`;
-  } else {
-    btn.disabled = true;
-    btn.style.cursor = 'not-allowed';
-    btn.style.color = 'rgba(255,255,255,.4)';
-    btn.style.background = 'rgba(255,255,255,.08)';
-    btn.style.border = '1px solid rgba(255,255,255,.2)';
-    btn.title = 'Sin acciones para deshacer';
-  }
-}
-
-async function undoLast(){
-  if(!_undoStack.length){ showT('⚠️ Nada que deshacer'); return; }
-  const snap = _undoStack.pop();
-  _undoRefreshBtn();
-  // Restaurar estado en memoria
-  R.rt  = snap.rt;
-  R.dg  = snap.dg;
-  R.rs  = snap.rs;
-  R.req = snap.req;
-  // Persistir en Firebase y localStorage
-  sRT(); sDG(); sRS(); sREQ();
-  try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
-  // Re-renderizar todo
-  renderRT(); renderDG(); renderRS(); renderREQ();
-  showT('↩️ Deshecho: '+snap.desc);
-}
-
-// Atajo de teclado Ctrl+Z / Cmd+Z
-document.addEventListener('keydown', e=>{
-  if((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey){
-    // Solo si no está escribiendo en un input/textarea
-    if(document.activeElement.tagName!=='INPUT' && document.activeElement.tagName!=='TEXTAREA'){
-      e.preventDefault();
-      undoLast();
-    }
-  }
-});
 
 // ─────────────────────────────────────────────
 // MIGRACIÓN DE NOMBRES DE TIENDA (una sola vez)
@@ -4435,18 +4347,28 @@ function _migrateRecs(arr){
   return changed;
 }
 function runStoreMigration(){
-  if(localStorage.getItem('store_migration_v2')) return;
-  let changed=false;
-  if(_migrateRecs(R.rt)) changed=true;
-  if(_migrateRecs(R.dg)) changed=true;
-  if(_migrateRecs(R.rs)) changed=true;
-  if(_migrateRecs(R.req)) changed=true;
-  if(changed){
-    sRT();sDG();sRS();sREQ();
+  if(localStorage.getItem('store_migration_v3')) return;
+  // Usa update() atómico por registro — nunca sobreescribe otros dispositivos
+  function migrateTab(tabName,ref){
+    const patch={};
+    (R[tabName]||[]).forEach(r=>{
+      const n=_migrateStoreName(r.tienda||'');
+      if(n!==r.tienda){r.tienda=n;patch[r.id]=r;}
+    });
+    if(Object.keys(patch).length) ref.update(patch).catch(()=>{});
+    return Object.keys(patch).length>0;
+  }
+  const anyChanged=[
+    migrateTab('rt',REF_R.child('rt')),
+    migrateTab('dg',REF_R.child('dg')),
+    migrateTab('rs',REF_R.child('rs')),
+    migrateTab('req',REF_R.child('req'))
+  ].some(Boolean);
+  if(anyChanged){
     try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
     showT('🏪 Nombres de tienda actualizados');
   }
-  localStorage.setItem('store_migration_v2','done');
+  localStorage.setItem('store_migration_v3','done');
 }
 
 // ─────────────────────────────────────────────
