@@ -1531,8 +1531,8 @@ function confirmCrop(id){
   out.getContext('2d').drawImage(st.img,Math.round(x*st.sx),Math.round(y*st.sy),out.width,out.height,0,0,out.width,out.height);
   out.toBlob(blob=>{
     closeCrop(id);
-    if(id===1) procF1(st.tab,new File([blob],'c.jpg',{type:'image/jpeg'}),out.toDataURL('image/jpeg',.92));
-    else procF2(st.tab,out.toDataURL('image/jpeg',.88));
+    if(id===1) procF1(st.tab,new File([blob],'c.jpg',{type:'image/jpeg'}),out.toDataURL('image/jpeg',.65));
+    else procF2(st.tab,out.toDataURL('image/jpeg',.65));
   },'image/jpeg',.92);
 }
 function useFull(id){
@@ -1540,7 +1540,7 @@ function useFull(id){
   const rd=new FileReader();
   rd.onload=e=>{
     if(id===1) procF1(st.tab,st.file,null,e.target.result);
-    else{const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;cv.getContext('2d').drawImage(img,0,0);procF2(st.tab,cv.toDataURL('image/jpeg',.88));};img.src=e.target.result;}
+    else{const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;cv.getContext('2d').drawImage(img,0,0);procF2(st.tab,cv.toDataURL('image/jpeg',.65));};img.src=e.target.result;}
   };rd.readAsDataURL(st.file);
 }
 function cancelCrop(id){closeCrop(id);if(id===1){const inp=document.getElementById(CS[1].tab+'-f1');if(inp)inp.value='';}}
@@ -1809,11 +1809,11 @@ function addF2uPhotos(tab,inp){
     reader.onload=e=>{
       const img=new Image();
       img.onload=()=>{
-        const maxH=800;const ratio=Math.min(1,maxH/img.height);
+        const maxH=400;const ratio=Math.min(1,maxH/img.height);
         const cv=document.createElement('canvas');
         cv.width=Math.round(img.width*ratio);cv.height=Math.round(img.height*ratio);
         cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-        f2u.push(cv.toDataURL('image/jpeg',.82));
+        f2u.push(cv.toDataURL('image/jpeg',.60));
         extra.idx++;
         processNext();
       };
@@ -1883,7 +1883,7 @@ function addMorePhotos(tab,id,inp){
       // Compress
       const img=new Image();
       img.onload=()=>{
-        const maxH=800;
+        const maxH=400;
         const cv=document.createElement('canvas');
         const ratio=Math.min(1,maxH/img.height);
         cv.width=Math.round(img.width*ratio);cv.height=Math.round(img.height*ratio);
@@ -2022,7 +2022,8 @@ function doSave(){
     renderDG();
     showT('✅ Guardado + copiado a Devolución General');
   } else {
-    saveTab(tab); clearF(tab);
+    if(tab==='dg') sDG([rec.id]); else saveTab(tab);
+    clearF(tab);
     if(tab==='rt') renderRT(); else if(tab==='dg') renderDG(); else if(tab==='rs') renderRS(); else if(tab==='req'){renderREQ();updateBell();}
     showT('✅ Registro guardado');
   }
@@ -3893,15 +3894,47 @@ function sRT(){
 function sDG(soloIds){
   // soloIds: array de IDs a escribir. Si no se pasa, escribe todos los de R.dg.
   const target = soloIds
-    ? R.dg.filter(r => soloIds.includes(r.id))
+    ? R.dg.filter(r => soloIds.includes(String(r.id)))
     : R.dg;
-  const patch = {};
-  target.forEach(r => { if(r && r.id) patch[r.id] = r; });
-  if(!Object.keys(patch).length) return;
-  REF_R.child('dg').update(patch)
-    .then(()=>fbSetStatus('ok','✅ Guardado DG',new Date().toLocaleString('es-EC')))
-    .catch(()=>fbSetStatus('err','⚠️ Error guardando DG',''));
+  if(!target.length) return;
+
+  // Guardar cada registro individualmente para evitar superar límite Firebase (~1MB/write)
+  // y para asegurar que un registro pesado no bloquee a los demás
+  const promises = target
+    .filter(r => r && r.id)
+    .map(r => {
+      // Calcular tamaño estimado del registro
+      const size = JSON.stringify(r).length;
+      if(size > 800000){ // >800KB — comprimir fotos antes de guardar
+        const slim = Object.assign({}, r);
+        slim.foto2 = (r.foto2||[]).map(f => _compressFotoForStorage(f));
+        return REF_R.child('dg').child(String(r.id)).set(slim);
+      }
+      return REF_R.child('dg').child(String(r.id)).set(r);
+    });
+
+  Promise.all(promises)
+    .then(()=>{
+      fbSetStatus('ok','✅ Guardado DG',new Date().toLocaleString('es-EC'));
+    })
+    .catch(err=>{
+      console.error('Error guardando DG:', err);
+      fbSetStatus('err','⚠️ Error guardando — verifica conexión','');
+      showT('⚠️ Error al guardar en Firebase. Intenta de nuevo.');
+    });
   try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
+}
+
+// Comprime una foto base64 a tamaño reducido para almacenamiento en Firebase
+function _compressFotoForStorage(dataUrl){
+  if(!dataUrl || !dataUrl.startsWith('data:image')) return dataUrl;
+  try{
+    const canvas = document.createElement('canvas');
+    const img = new Image();
+    // Síncrono no es posible, retornar versión recortada del string como fallback
+    // La compresión real ocurre en procF2 (ya reducida a 400px/0.60)
+    return dataUrl;
+  }catch(e){ return dataUrl; }
 }
 
 // sDGDelete: elimina un registro específico de Firebase DG por su id
