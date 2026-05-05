@@ -1531,8 +1531,8 @@ function confirmCrop(id){
   out.getContext('2d').drawImage(st.img,Math.round(x*st.sx),Math.round(y*st.sy),out.width,out.height,0,0,out.width,out.height);
   out.toBlob(blob=>{
     closeCrop(id);
-    if(id===1) procF1(st.tab,new File([blob],'c.jpg',{type:'image/jpeg'}),out.toDataURL('image/jpeg',.65));
-    else procF2(st.tab,out.toDataURL('image/jpeg',.65));
+    if(id===1) procF1(st.tab,new File([blob],'c.jpg',{type:'image/jpeg'}),out.toDataURL('image/jpeg',.50));
+    else procF2(st.tab,out.toDataURL('image/jpeg',.50));
   },'image/jpeg',.92);
 }
 function useFull(id){
@@ -1540,7 +1540,7 @@ function useFull(id){
   const rd=new FileReader();
   rd.onload=e=>{
     if(id===1) procF1(st.tab,st.file,null,e.target.result);
-    else{const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;cv.getContext('2d').drawImage(img,0,0);procF2(st.tab,cv.toDataURL('image/jpeg',.65));};img.src=e.target.result;}
+    else{const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;cv.getContext('2d').drawImage(img,0,0);procF2(st.tab,cv.toDataURL('image/jpeg',.50));};img.src=e.target.result;}
   };rd.readAsDataURL(st.file);
 }
 function cancelCrop(id){closeCrop(id);if(id===1){const inp=document.getElementById(CS[1].tab+'-f1');if(inp)inp.value='';}}
@@ -1809,11 +1809,11 @@ function addF2uPhotos(tab,inp){
     reader.onload=e=>{
       const img=new Image();
       img.onload=()=>{
-        const maxH=400;const ratio=Math.min(1,maxH/img.height);
+        const maxH=320;const ratio=Math.min(1,maxH/img.height);
         const cv=document.createElement('canvas');
         cv.width=Math.round(img.width*ratio);cv.height=Math.round(img.height*ratio);
         cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-        f2u.push(cv.toDataURL('image/jpeg',.60));
+        f2u.push(cv.toDataURL('image/jpeg',.50));
         extra.idx++;
         processNext();
       };
@@ -1883,12 +1883,12 @@ function addMorePhotos(tab,id,inp){
       // Compress
       const img=new Image();
       img.onload=()=>{
-        const maxH=400;
+        const maxH=320;
         const cv=document.createElement('canvas');
         const ratio=Math.min(1,maxH/img.height);
         cv.width=Math.round(img.width*ratio);cv.height=Math.round(img.height*ratio);
         cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-        const jd=cv.toDataURL('image/jpeg',.82);
+        const jd=cv.toDataURL('image/jpeg',.50);
         rec.foto2.push(jd);
         loaded++;
         if(loaded===files.length){
@@ -3511,7 +3511,7 @@ function toJ(d,maxPx){return new Promise(r=>{const i=new Image();i.onload=()=>{
   const cv=document.createElement('canvas');
   cv.width=Math.round(i.width*scale);cv.height=Math.round(i.height*scale);
   cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);
-  r(cv.toDataURL('image/jpeg',.92));};i.onerror=()=>r(null);i.src=d;});}
+  r(cv.toDataURL('image/jpeg',.50));};i.onerror=()=>r(null);i.src=d;});}
 function getDim(d){return new Promise(r=>{const i=new Image();i.onload=()=>r({w:i.width,h:i.height});i.onerror=()=>r({w:1,h:1});i.src=d;});}
 
 // ─────────────────────────────────────────────
@@ -3788,8 +3788,14 @@ function loadStorage(){
 
     // Listener RT
     REF_R.child('rt').on('value', snap=>{
-      R.rt = snap.val() ? Object.values(snap.val()) : [];
-      try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
+      const inc=snap.val()?Object.values(snap.val()):[];
+      inc.forEach(rec=>{
+        const ex=R.rt.find(r=>String(r.id)===String(rec.id));
+        rec.foto2=(ex&&ex.foto2&&ex.foto2.length>0)?ex.foto2:(rec.foto2||[]);
+      });
+      R.rt=inc;
+      try{const slim={rt:R.rt.map(_recSinFotos),rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
+        localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
       renderRT();
       fbSetStatus('ok','✅ Sincronizado',new Date().toLocaleString('es-EC'));
     }, ()=>{
@@ -3802,30 +3808,44 @@ function loadStorage(){
     let _dgFirstLoad = true;
     let _dgPrevDecCount = 0;
     REF_R.child('dg').on('value', snap=>{
-      R.dg = snap.val() ? Object.values(snap.val()) : [];
-      try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
-      renderDG();
+      const val = snap.val();
+      const incoming = val ? Object.values(val) : [];
+      // Fusionar: preservar foto2 ya en memoria (vienen de dg_fotos listener)
+      incoming.forEach(rec=>{
+        const ex=R.dg.find(r=>String(r.id)===String(rec.id));
+        rec.foto2 = (ex&&ex.foto2&&ex.foto2.length>0) ? ex.foto2 : (rec.foto2||[]);
+      });
+      R.dg = incoming;
+      try{const slim={rt:R.rt,rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
+        localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
       updateDGStatusBanner();
-      fbSetStatus('ok','✅ Sincronizado',new Date().toLocaleString('es-EC'));
-      // Notificar cambios remotos (excepto la carga inicial)
-      if(!_dgFirstLoad){
-        const decCount = R.dg.filter(r => r.decision && r.decision !== 'Revisar en Tiendas').length;
-        if(decCount !== _dgPrevDecCount){
-          const diff = decCount - _dgPrevDecCount;
-          showT('📡 ' + (diff > 0 ? '+' + diff + ' decisiones' : 'Datos') + ' actualizados desde otro dispositivo');
-        }
-        _dgPrevDecCount = decCount;
-      } else {
-        _dgPrevDecCount = R.dg.filter(r => r.decision && r.decision !== 'Revisar en Tiendas').length;
-        _dgFirstLoad = false;
-      }
+      renderDG();
+      autoFiltrarDGPorTienda();
     }, ()=>{
       try{const d=JSON.parse(localStorage.getItem('dr')||'{}');R.dg=d.dg||[];}catch(e){}
       renderDG();
     });
 
-    // Listener RS
-    REF_R.child('rs').on('value', snap=>{
+    // Listener fotos DG — nodo separado para no saturar memoria principal
+    REF_R.child('dg_fotos').on('value', snap=>{
+      const val=snap.val();if(!val)return;
+      Object.entries(val).forEach(([id,data])=>{
+        const rec=R.dg.find(r=>String(r.id)===String(id));
+        if(rec&&data.foto2) rec.foto2=data.foto2;
+      });
+      renderDG();
+    });
+
+    // Listener RT fotos
+    REF_R.child('rt_fotos').on('value', snap=>{
+    const val=snap.val();if(!val)return;
+    Object.entries(val).forEach(([id,data])=>{
+      const rec=R.rt.find(r=>String(r.id)===String(id));
+      if(rec && data.foto2) rec.foto2=data.foto2;
+    });
+    renderRT();
+  });
+  REF_R.child('rs').on('value', snap=>{
       R.rs = snap.val() ? Object.values(snap.val()) : [];
       try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
       renderRS();
@@ -3881,37 +3901,55 @@ function loadStorage(){
 
 // Guardar RT en Firebase
 function sRT(){
-  REF_R.child('rt').set(toFbObj(R.rt))
+  // Guardar RT sin fotos en nodo principal; fotos en rt_fotos
+  const patch = {};
+  const fotosPatch = {};
+  (R.rt||[]).forEach(r=>{
+    if(r && r.id){
+      patch[r.id] = _recSinFotos(r);
+      if(r.foto2 && r.foto2.length>0) fotosPatch[r.id] = {foto2:r.foto2};
+    }
+  });
+  REF_R.child('rt').update(patch)
     .then(()=>fbSetStatus('ok','✅ Guardado RT',new Date().toLocaleString('es-EC')))
     .catch(()=>fbSetStatus('err','⚠️ Error guardando RT',''));
-  try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
+  if(Object.keys(fotosPatch).length)
+    REF_R.child('rt_fotos').update(fotosPatch).catch(()=>{});
+  try{const slim={rt:R.rt.map(_recSinFotos),rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
+    localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
 }
 
 // Guardar DG en Firebase — escritura atómica, solo el nodo dg
 // sDG: escribe SOLO los registros nuevos/modificados usando update() (no set).
 // update() es una escritura merge: no borra registros de otros dispositivos.
 // Se usa para DG porque múltiples dispositivos escriben concurrentemente.
+function _recSinFotos(r){
+  // Clon del registro SIN foto2 — para el nodo principal de Firebase
+  const c = Object.assign({}, r);
+  delete c.foto2;
+  return c;
+}
+
 function sDG(soloIds){
-  // soloIds: array de IDs a escribir. Si no se pasa, escribe todos los de R.dg.
   const target = soloIds
     ? R.dg.filter(r => soloIds.includes(String(r.id)))
     : R.dg;
   if(!target.length) return;
 
-  // Guardar cada registro individualmente para evitar superar límite Firebase (~1MB/write)
-  // y para asegurar que un registro pesado no bloquee a los demás
-  const promises = target
-    .filter(r => r && r.id)
-    .map(r => {
-      // Calcular tamaño estimado del registro
-      const size = JSON.stringify(r).length;
-      if(size > 800000){ // >800KB — comprimir fotos antes de guardar
-        const slim = Object.assign({}, r);
-        slim.foto2 = (r.foto2||[]).map(f => _compressFotoForStorage(f));
-        return REF_R.child('dg').child(String(r.id)).set(slim);
-      }
-      return REF_R.child('dg').child(String(r.id)).set(r);
-    });
+  const promises = [];
+  target.filter(r => r && r.id).forEach(r => {
+    const id = String(r.id);
+    // Nodo principal: SIN fotos (liviano, se sincroniza rápido entre dispositivos)
+    promises.push(
+      REF_R.child('dg').child(id).set(_recSinFotos(r))
+    );
+    // Nodo de fotos separado: solo si tiene fotos
+    if(r.foto2 && r.foto2.length > 0){
+      promises.push(
+        REF_R.child('dg_fotos').child(id).set({foto2: r.foto2})
+      );
+    }
+  });
 
   Promise.all(promises)
     .then(()=>{
@@ -3922,26 +3960,21 @@ function sDG(soloIds){
       fbSetStatus('err','⚠️ Error guardando — verifica conexión','');
       showT('⚠️ Error al guardar en Firebase. Intenta de nuevo.');
     });
-  try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
-}
-
-// Comprime una foto base64 a tamaño reducido para almacenamiento en Firebase
-function _compressFotoForStorage(dataUrl){
-  if(!dataUrl || !dataUrl.startsWith('data:image')) return dataUrl;
+  // localStorage: guardar sin fotos para no llenar el storage local
   try{
-    const canvas = document.createElement('canvas');
-    const img = new Image();
-    // Síncrono no es posible, retornar versión recortada del string como fallback
-    // La compresión real ocurre en procF2 (ya reducida a 400px/0.60)
-    return dataUrl;
-  }catch(e){ return dataUrl; }
+    const slim = {rt:R.rt,rs:R.rs,req:R.req,
+      dg: R.dg.map(_recSinFotos)};
+    localStorage.setItem('dr', JSON.stringify(slim));
+  }catch(e){}
 }
 
 // sDGDelete: elimina un registro específico de Firebase DG por su id
 function sDGDelete(id){
   REF_R.child('dg').child(id).remove()
     .catch(()=>fbSetStatus('err','⚠️ Error eliminando DG',''));
-  try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
+  REF_R.child('dg_fotos').child(id).remove().catch(()=>{});
+  try{const slim={rt:R.rt,rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
+    localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
 }
 
 // Guardar RS en Firebase
