@@ -584,7 +584,7 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
             <option>T001 -LUQUE</option><option>T003 -SUR</option><option>T004 -ROTONDA</option><option>T006 -QUICENTRO NORTE</option>
             <option>T014 -SAN MARINO</option><option>T019 -SAN LUIS</option><option>T026 -QUICENTRO SUR</option><option>T032 -POLICENTRO</option>
             <option>T035 -PLAZANAVONA</option><option>T038 -LASCALA  CUMBAYA</option><option>T040 -CONDADO</option><option>T041 -EL RECREO</option><option>T043 -MALL DEL PACIFICO</option>
-            <option>T047 -EL PORTAL CARAPUNGO</option><option>T053 -MACHALA</option><option>T054 -BOMBOLI</option><option>T080 -INTERNET</option>
+            <option>T047 -EL PORTAL CARAPUNGO</option><option>T053 -MACHALA</option><option>T054 -BOMBOLI</option><option>T080 -INTERNET</option><option>TODAS LAS TIENDAS</option>
           </select>
           <button class="btn bg sm" onclick="exportXL('rt')"><span class="ic">📊</span> Excel</button>
           <button class="btn bs sm" onclick="exportPDF('rt')"><span class="ic">📄</span> PDF Originales</button>
@@ -613,7 +613,7 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
               <option>T001 -LUQUE</option><option>T003 -SUR</option><option>T004 -ROTONDA</option><option>T006 -QUICENTRO NORTE</option>
               <option>T014 -SAN MARINO</option><option>T019 -SAN LUIS</option><option>T026 -QUICENTRO SUR</option><option>T032 -POLICENTRO</option>
               <option>T035 -PLAZANAVONA</option><option>T038 -LASCALA  CUMBAYA</option><option>T040 -CONDADO</option><option>T041 -EL RECREO</option><option>T043 -MALL DEL PACIFICO</option>
-              <option>T047 -EL PORTAL CARAPUNGO</option><option>T053 -MACHALA</option><option>T054 -BOMBOLI</option><option>T080 -INTERNET</option>
+              <option>T047 -EL PORTAL CARAPUNGO</option><option>T053 -MACHALA</option><option>T054 -BOMBOLI</option><option>T080 -INTERNET</option><option>TODAS LAS TIENDAS</option>
             </select>
             <button class="btn bg sm" onclick="exportXLTienda()"><span class="ic">📊</span> Excel Tiendas</button>
             <button class="btn bs sm" onclick="exportPDFTienda()"><span class="ic">📄</span> PDF Tiendas</button>
@@ -667,7 +667,7 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
             <option>T001 -LUQUE</option><option>T003 -SUR</option><option>T004 -ROTONDA</option><option>T006 -QUICENTRO NORTE</option>
             <option>T014 -SAN MARINO</option><option>T019 -SAN LUIS</option><option>T026 -QUICENTRO SUR</option><option>T032 -POLICENTRO</option>
             <option>T035 -PLAZANAVONA</option><option>T038 -LASCALA  CUMBAYA</option><option>T040 -CONDADO</option><option>T041 -EL RECREO</option><option>T043 -MALL DEL PACIFICO</option>
-            <option>T047 -EL PORTAL CARAPUNGO</option><option>T053 -MACHALA</option><option>T054 -BOMBOLI</option><option>T080 -INTERNET</option>
+            <option>T047 -EL PORTAL CARAPUNGO</option><option>T053 -MACHALA</option><option>T054 -BOMBOLI</option><option>T080 -INTERNET</option><option>TODAS LAS TIENDAS</option>
           </select>
           <button class="btn bg sm" onclick="exportXL('dg')"><span class="ic">📊</span> Excel</button>
           <button class="btn bs sm" onclick="exportPDF('dg')"><span class="ic">📄</span> PDF</button>
@@ -768,7 +768,7 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
         <option>T001 -LUQUE</option><option>T003 -SUR</option><option>T004 -ROTONDA</option><option>T006 -QUICENTRO NORTE</option>
         <option>T014 -SAN MARINO</option><option>T019 -SAN LUIS</option><option>T026 -QUICENTRO SUR</option><option>T032 -POLICENTRO</option>
         <option>T035 -PLAZANAVONA</option><option>T038 -LASCALA  CUMBAYA</option><option>T040 -CONDADO</option><option>T041 -EL RECREO</option><option>T043 -MALL DEL PACIFICO</option>
-        <option>T047 -EL PORTAL CARAPUNGO</option><option>T053 -MACHALA</option><option>T054 -BOMBOLI</option><option>T080 -INTERNET</option>
+        <option>T047 -EL PORTAL CARAPUNGO</option><option>T053 -MACHALA</option><option>T054 -BOMBOLI</option><option>T080 -INTERNET</option><option>TODAS LAS TIENDAS</option>
       </select>
       <button class="btn bp sm" onclick="filterCons()"><span class="ic">🔍</span> Filtrar</button>
       <button class="btn bg sm" onclick="exportXL('cons')"><span class="ic">📊</span> Excel</button>
@@ -926,20 +926,14 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
   <div id="ocr-status" style="color:#94a3b8;font-size:.78rem;min-height:18px;"></div>
 </div>
 
-<!-- BARCODE SCANNER OVERLAY -->
+<!-- BARCODE SCANNER OVERLAY (foto + decode) -->
 <div id="barcode-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:950;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;">
-  <div style="color:#facc15;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:700;text-align:center;">📲 Escáner de Código de Barras</div>
-  <div style="color:#94a3b8;font-family:'Nunito',sans-serif;font-size:.78rem;text-align:center;margin-top:-6px;">Encuadra el código dentro del recuadro amarillo</div>
-  <!-- Visor de cámara con guías de esquinas -->
-  <div style="position:relative;width:min(320px,88vw);height:min(200px,50vw);">
-    <video id="barcode-video" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" playsinline autoplay muted></video>
-    <!-- Línea de escaneo animada -->
-    <div id="scan-line" style="position:absolute;left:6%;width:88%;height:2.5px;background:linear-gradient(90deg,transparent,#facc15,transparent);box-shadow:0 0 8px #facc15;animation:scanMove 1.8s ease-in-out infinite;top:20%;"></div>
-    <!-- Esquinas del marco -->
-    <div style="position:absolute;top:0;left:0;width:22px;height:22px;border-top:3px solid #facc15;border-left:3px solid #facc15;border-radius:3px 0 0 0;"></div>
-    <div style="position:absolute;top:0;right:0;width:22px;height:22px;border-top:3px solid #facc15;border-right:3px solid #facc15;border-radius:0 3px 0 0;"></div>
-    <div style="position:absolute;bottom:0;left:0;width:22px;height:22px;border-bottom:3px solid #facc15;border-left:3px solid #facc15;border-radius:0 0 0 3px;"></div>
-    <div style="position:absolute;bottom:0;right:0;width:22px;height:22px;border-bottom:3px solid #facc15;border-right:3px solid #facc15;border-radius:0 0 3px 0;"></div>
+  <div style="color:#facc15;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:700;text-align:center;">📷 Escanear Código de Barras</div>
+  <div style="color:#94a3b8;font-family:'Nunito',sans-serif;font-size:.78rem;text-align:center;margin-top:-6px;">Se abre la cámara para fotografiar la etiqueta</div>
+  <!-- Preview de la foto tomada -->
+  <div style="position:relative;width:min(320px,88vw);min-height:80px;display:flex;align-items:center;justify-content:center;">
+    <img id="barcode-preview-img" src="" alt="" style="display:none;max-width:100%;max-height:200px;border-radius:8px;border:2px solid #facc15;">
+    <div id="barcode-scan-anim" style="color:#facc15;font-size:2.5rem;animation:fbpulse 1s infinite;">🔍</div>
   </div>
   <div id="barcode-status" style="color:#94a3b8;font-size:.78rem;min-height:20px;text-align:center;font-family:'Nunito',sans-serif;"></div>
   <!-- Input manual como fallback -->
@@ -996,7 +990,7 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
 // ─────────────────────────────────────────────
 let STORES=['T001 -LUQUE','T003 -SUR','T004 -ROTONDA','T006 -QUICENTRO NORTE','T014 -SAN MARINO','T019 -SAN LUIS',
   'T026 -QUICENTRO SUR','T032 -POLICENTRO','T035 -PLAZANAVONA','T038 -LASCALA  CUMBAYA','T040 -CONDADO','T041 -EL RECREO','T043 -MALL DEL PACIFICO',
-  'T047 -EL PORTAL CARAPUNGO','T053 -MACHALA','T054 -BOMBOLI','T080 -INTERNET'];
+  'T047 -EL PORTAL CARAPUNGO','T053 -MACHALA','T054 -BOMBOLI','T080 -INTERNET','TODAS LAS TIENDAS'];
 let CUSTOM_STORES=[];
 
 // DIV 6-7 data — preloaded from Excel, can be overridden
@@ -1366,10 +1360,8 @@ function buildForm(tab, tiendaFixed, containerEl){
       <div id="${tab}-el">
         <div class="er" data-i="0">
           <div class="g"><label>11. EAN/SKU</label>
-            <div style="display:flex;gap:5px;align-items:center;">
-              <input type="text" class="ei" style="flex:1;">
-              <button type="button" class="btn" onclick="openBarcodeScanner('${tab}')" style="background:#0369a1;color:#fff;font-weight:700;padding:5px 9px;font-size:.78rem;white-space:nowrap;" title="Escanear código de barras"><span style="font-size:.9rem;">📲</span> Escanear</button>
-            </div>
+            <input type="text" class="ei" style="width:100%;">
+            <button type="button" class="btn" onclick="openBarcodeScanner('${tab}')" style="background:#0369a1;color:#fff;font-weight:700;padding:6px 10px;font-size:.78rem;white-space:nowrap;margin-top:5px;width:100%;justify-content:center;" title="Escanear código de barras"><span style="font-size:.9rem;">📷</span> Escanear Código</button>
           </div>
           <div class="g"><label>12. Cantidad</label>
           <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
@@ -1382,6 +1374,7 @@ function buildForm(tab, tiendaFixed, containerEl){
         </div>
       </div>
       <button class="btn bo sm" onclick="addER('${tab}')"><span class="ic">➕</span> Añadir EAN</button>
+      <button class="btn" onclick="addERWithScan('${tab}')" style="background:#0369a1;color:#fff;padding:5px 12px;font-size:.76rem;font-weight:700;"><span class="ic">📷</span> Escanear EAN</button>
     </div>
     <div class="fg">
       <div class="g fs"><label>14. Motivo</label><textarea id="${tab}-mot"></textarea></div>
@@ -1944,7 +1937,8 @@ function addER(tab){
   const fp=list.querySelector('.pi')?.value||'';
   const row=document.createElement('div');row.className='er';row.setAttribute('data-i',idx);
   row.innerHTML=`
-    <div class="g"><label>EAN/SKU ${idx+1}</label><input type="text" class="ei"></div>
+    <div class="g"><label>EAN/SKU ${idx+1}</label><input type="text" class="ei" style="width:100%;">
+    <button type="button" class="btn" onclick="openBarcodeScannerForRow(this)" style="background:#0369a1;color:#fff;font-weight:700;padding:5px 10px;font-size:.75rem;white-space:nowrap;margin-top:4px;width:100%;justify-content:center;"><span>📷</span> Escanear</button></div>
     <div class="g"><label>Cantidad ${idx+1}</label>
           <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
             <input type="text" inputmode="numeric" class="ci" placeholder="0" oninput="calcP(this)" style="width:70px;">
@@ -1954,6 +1948,155 @@ function addER(tab){
     <div class="g"><label>PVP Total</label><div class="pvpd">$0.00</div></div>
     <div class="g" style="justify-content:flex-end;"><button class="btn bd sm" onclick="this.closest('.er').remove()" style="margin-top:16px"><span class="ic">🗑️</span></button></div>`;
   list.appendChild(row);
+}
+
+function addERWithScan(tab){
+  // Añadir fila primero
+  addER(tab);
+  // Luego abrir escáner apuntando a la última fila
+  const list=document.getElementById(tab+'-el');
+  const lastRow=list.lastElementChild;
+  const eiInput=lastRow?.querySelector('.ei');
+  if(!eiInput) return;
+  _scanTab=tab;
+  // Usar cámara
+  let photoInput=document.getElementById('barcode-photo-input');
+  if(!photoInput){
+    photoInput=document.createElement('input');
+    photoInput.type='file';
+    photoInput.id='barcode-photo-input';
+    photoInput.accept='image/*';
+    photoInput.setAttribute('capture','environment');
+    photoInput.style.display='none';
+    document.body.appendChild(photoInput);
+  }
+  photoInput.onchange=null;
+  photoInput.value='';
+  photoInput.onchange=function(){
+    const file=this.files[0];
+    if(!file) return;
+    const overlay=document.getElementById('barcode-overlay');
+    const status=document.getElementById('barcode-status');
+    const previewImg=document.getElementById('barcode-preview-img');
+    const scanAnim=document.getElementById('barcode-scan-anim');
+    overlay.style.display='flex';
+    if(scanAnim) scanAnim.style.display='none';
+    status.textContent='⏳ Procesando foto...';
+    const reader=new FileReader();
+    reader.onload=function(e){
+      if(previewImg){ previewImg.src=e.target.result; previewImg.style.display='block'; }
+      function applyCode(code){
+        eiInput.value=code;
+        eiInput.dispatchEvent(new Event('input'));
+        eiInput.style.background='#d1fae5';
+        setTimeout(()=>eiInput.style.background='',1200);
+        closeBarcodeScanner();
+        showT('✅ EAN escaneado: '+code);
+      }
+      if('BarcodeDetector' in window){
+        const img=new Image();
+        img.onload=()=>{
+          const bd=new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','upc_a','upc_e','qr_code']});
+          bd.detect(img).then(barcodes=>{
+            if(barcodes&&barcodes.length>0){const code=(barcodes[0].rawValue||'').trim();if(code){applyCode(code);return;}}
+            _scanWithZXingCallback(e.target.result, applyCode, status);
+          }).catch(()=>_scanWithZXingCallback(e.target.result, applyCode, status));
+        };
+        img.src=e.target.result;
+      } else {
+        _scanWithZXingCallback(e.target.result, applyCode, status);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  photoInput.click();
+}
+
+function openBarcodeScannerForRow(btn){
+  // Obtiene el input EAN de esta fila específica
+  const eiInput=btn.closest('.er')?.querySelector('.ei');
+  if(!eiInput) return;
+  let photoInput=document.getElementById('barcode-photo-input');
+  if(!photoInput){
+    photoInput=document.createElement('input');
+    photoInput.type='file';
+    photoInput.id='barcode-photo-input';
+    photoInput.accept='image/*';
+    photoInput.setAttribute('capture','environment');
+    photoInput.style.display='none';
+    document.body.appendChild(photoInput);
+  }
+  photoInput.onchange=null;
+  photoInput.value='';
+  photoInput.onchange=function(){
+    const file=this.files[0];
+    if(!file) return;
+    const overlay=document.getElementById('barcode-overlay');
+    const status=document.getElementById('barcode-status');
+    const previewImg=document.getElementById('barcode-preview-img');
+    const scanAnim=document.getElementById('barcode-scan-anim');
+    overlay.style.display='flex';
+    if(scanAnim) scanAnim.style.display='none';
+    status.textContent='⏳ Procesando foto...';
+    const reader=new FileReader();
+    reader.onload=function(e){
+      if(previewImg){ previewImg.src=e.target.result; previewImg.style.display='block'; }
+      function applyCode(code){
+        eiInput.value=code;
+        eiInput.dispatchEvent(new Event('input'));
+        eiInput.style.background='#d1fae5';
+        setTimeout(()=>eiInput.style.background='',1200);
+        closeBarcodeScanner();
+        showT('✅ EAN escaneado: '+code);
+      }
+      if('BarcodeDetector' in window){
+        const img=new Image();
+        img.onload=()=>{
+          const bd=new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','upc_a','upc_e','qr_code']});
+          bd.detect(img).then(barcodes=>{
+            if(barcodes&&barcodes.length>0){const code=(barcodes[0].rawValue||'').trim();if(code){applyCode(code);return;}}
+            _scanWithZXingCallback(e.target.result, applyCode, status);
+          }).catch(()=>_scanWithZXingCallback(e.target.result, applyCode, status));
+        };
+        img.src=e.target.result;
+      } else {
+        _scanWithZXingCallback(e.target.result, applyCode, status);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  photoInput.click();
+}
+
+function _scanWithZXingCallback(dataUrl, onSuccess, status){
+  const manualWrap=document.getElementById('barcode-manual-wrap');
+  _loadZXing(ok=>{
+    if(ok===false){
+      if(status) status.textContent='⚠️ Escáner no disponible. Usa entrada manual.';
+      if(manualWrap) manualWrap.style.display='flex';
+      return;
+    }
+    try{
+      const hints=new Map();
+      const formats=[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.CODE_128,ZXing.BarcodeFormat.CODE_39,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E];
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      const reader=new ZXing.BrowserMultiFormatReader(hints);
+      if(status) status.textContent='🔍 Analizando...';
+      const img=new Image();
+      img.onload=()=>{
+        const cv=document.createElement('canvas');
+        cv.width=img.width; cv.height=img.height;
+        cv.getContext('2d').drawImage(img,0,0);
+        reader.decodeFromCanvas(cv).then(result=>{
+          const code=(result.getText()||'').trim();
+          if(code&&code.length>=4){ onSuccess(code); }
+          else { if(status) status.textContent='⚠️ No se detectó código. Usa entrada manual.'; if(manualWrap) manualWrap.style.display='flex'; }
+        }).catch(()=>{ if(status) status.textContent='⚠️ No se pudo leer. Usa entrada manual.'; if(manualWrap) manualWrap.style.display='flex'; });
+      };
+      img.src=dataUrl;
+    }catch(e){ if(status) status.textContent='⚠️ Error. Usa entrada manual.'; if(manualWrap) manualWrap.style.display='flex'; }
+  });
 }
 function calcP(inp){
   const row=inp.closest('.er');
@@ -2045,7 +2188,8 @@ function clearF(tab){
   f2u=[];
   const elList=document.getElementById(tab+'-el');
   if(elList) elList.innerHTML=`<div class="er" data-i="0">
-    <div class="g"><label>11. EAN/SKU</label><input type="text" class="ei"></div>
+    <div class="g"><label>11. EAN/SKU</label><input type="text" class="ei" style="width:100%;">
+    <button type="button" class="btn" onclick="openBarcodeScanner('${tab}')" style="background:#0369a1;color:#fff;font-weight:700;padding:5px 10px;font-size:.75rem;white-space:nowrap;margin-top:4px;width:100%;justify-content:center;"><span>📷</span> Escanear</button></div>
     <div class="g"><label>12. Cantidad</label>
           <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
             <input type="text" inputmode="numeric" class="ci" placeholder="0" oninput="calcP(this)" style="width:70px;">
@@ -3557,21 +3701,70 @@ function _loadZXing(cb){
 
 function openBarcodeScanner(tab){
   _scanTab=tab;
-  const overlay=document.getElementById('barcode-overlay');
-  overlay.style.display='flex';
-  const status=document.getElementById('barcode-status');
-  const manualWrap=document.getElementById('barcode-manual-wrap');
-  if(manualWrap) manualWrap.style.display='none';
-  status.textContent='⏳ Cargando escáner...';
+  // Usar input de cámara para tomar foto y luego decodificar código de barras
+  let photoInput=document.getElementById('barcode-photo-input');
+  if(!photoInput){
+    photoInput=document.createElement('input');
+    photoInput.type='file';
+    photoInput.id='barcode-photo-input';
+    photoInput.accept='image/*';
+    photoInput.setAttribute('capture','environment');
+    photoInput.style.display='none';
+    document.body.appendChild(photoInput);
+  }
+  // Limpiar listener anterior
+  photoInput.onchange=null;
+  photoInput.value='';
 
+  photoInput.onchange=function(){
+    const file=this.files[0];
+    if(!file) return;
+    const status=document.getElementById('barcode-status');
+    const overlay=document.getElementById('barcode-overlay');
+    overlay.style.display='flex';
+    status.textContent='⏳ Procesando foto...';
+    // Mostrar preview de la foto
+    const previewImg=document.getElementById('barcode-preview-img');
+    const reader=new FileReader();
+    reader.onload=function(e){
+      if(previewImg){ previewImg.src=e.target.result; previewImg.style.display='block'; }
+      // Intentar con BarcodeDetector nativo primero (más rápido, si disponible)
+      if('BarcodeDetector' in window){
+        const img=new Image();
+        img.onload=()=>{
+          const bd=new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','upc_a','upc_e','qr_code']});
+          bd.detect(img).then(barcodes=>{
+            if(barcodes && barcodes.length>0){
+              const code=(barcodes[0].rawValue||'').trim();
+              if(code){
+                closeBarcodeScanner();
+                pasteBarcode(tab,code);
+                return;
+              }
+            }
+            // Fallback a ZXing si no encontró
+            _scanWithZXing(e.target.result, tab, status, overlay);
+          }).catch(()=>_scanWithZXing(e.target.result, tab, status, overlay));
+        };
+        img.src=e.target.result;
+      } else {
+        _scanWithZXing(e.target.result, tab, status, overlay);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  photoInput.click();
+}
+
+function _scanWithZXing(dataUrl, tab, status, overlay){
+  const manualWrap=document.getElementById('barcode-manual-wrap');
   _loadZXing(ok=>{
     if(ok===false){
-      status.textContent='⚠️ Escáner no disponible. Usa entrada manual.';
+      if(status) status.textContent='⚠️ Escáner no disponible. Usa entrada manual.';
       if(manualWrap) manualWrap.style.display='flex';
       return;
     }
     try{
-      // MultiFormatReader soporta EAN-13, Code128, Code39 y muchos más
       const hints=new Map();
       const formats=[
         ZXing.BarcodeFormat.EAN_13,
@@ -3583,31 +3776,30 @@ function openBarcodeScanner(tab){
       ];
       hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
       hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-      _zxingReader=new ZXing.BrowserMultiFormatReader(hints);
-      _zxingActive=true;
-      status.textContent='🔍 Buscando código... (apunta y mantén estable)';
-
-      const video=document.getElementById('barcode-video');
-      _zxingReader.decodeFromConstraints(
-        { video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} } },
-        video,
-        (result, err)=>{
-          if(result){
-            const code=(result.getText()||'').trim();
-            if(code && code.length>=4){
-              closeBarcodeScanner();
-              pasteBarcode(tab, code);
-            }
+      const reader=new ZXing.BrowserMultiFormatReader(hints);
+      if(status) status.textContent='🔍 Analizando código de barras...';
+      const img=new Image();
+      img.onload=()=>{
+        const cv=document.createElement('canvas');
+        cv.width=img.width; cv.height=img.height;
+        cv.getContext('2d').drawImage(img,0,0);
+        reader.decodeFromCanvas(cv).then(result=>{
+          const code=(result.getText()||'').trim();
+          if(code && code.length>=4){
+            closeBarcodeScanner();
+            pasteBarcode(tab,code);
+          } else {
+            if(status) status.textContent='⚠️ No se detectó código. Intenta de nuevo o usa entrada manual.';
+            if(manualWrap) manualWrap.style.display='flex';
           }
-          // err puede ser NotFoundException (normal entre frames) — ignorar
-        }
-      ).catch(e=>{
-        status.textContent='⚠️ Error de cámara. Usa entrada manual.';
-        if(manualWrap) manualWrap.style.display='flex';
-      });
+        }).catch(()=>{
+          if(status) status.textContent='⚠️ No se pudo leer el código. Intenta de nuevo o usa entrada manual.';
+          if(manualWrap) manualWrap.style.display='flex';
+        });
+      };
+      img.src=dataUrl;
     }catch(e){
-      status.textContent='⚠️ Error al iniciar escáner. Usa entrada manual.';
+      if(status) status.textContent='⚠️ Error. Usa entrada manual.';
       if(manualWrap) manualWrap.style.display='flex';
     }
   });
@@ -3634,17 +3826,14 @@ function closeBarcodeScanner(){
     try{ _zxingReader.reset(); }catch(e){}
     _zxingActive=false;
   }
-  const video=document.getElementById('barcode-video');
-  if(video){
-    if(video.srcObject){
-      video.srcObject.getTracks().forEach(t=>t.stop());
-      video.srcObject=null;
-    }
-  }
   const overlay=document.getElementById('barcode-overlay');
   if(overlay) overlay.style.display='none';
   const mw=document.getElementById('barcode-manual-wrap');
   if(mw) mw.style.display='none';
+  const previewImg=document.getElementById('barcode-preview-img');
+  if(previewImg){ previewImg.src=''; previewImg.style.display='none'; }
+  const scanAnim=document.getElementById('barcode-scan-anim');
+  if(scanAnim) scanAnim.style.display='block';
 }
 
 function pasteBarcode(tab,code){
@@ -3660,6 +3849,14 @@ function pasteBarcode(tab,code){
     setTimeout(()=>target.style.background='',1200);
   }
   showT('✅ Código escaneado: '+code);
+}
+
+// Actualizar _scanWithZXing para usar callback si se provee
+function _scanWithZXing(dataUrl, tab, status, overlay){
+  _scanWithZXingCallback(dataUrl, (code)=>{
+    closeBarcodeScanner();
+    pasteBarcode(tab, code);
+  }, status);
 }
 
 // ─────────────────────────────────────────────
