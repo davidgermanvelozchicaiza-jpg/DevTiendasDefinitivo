@@ -1532,8 +1532,8 @@ function confirmCrop(id){
   out.getContext('2d').drawImage(st.img,Math.round(x*st.sx),Math.round(y*st.sy),out.width,out.height,0,0,out.width,out.height);
   out.toBlob(blob=>{
     closeCrop(id);
-    if(id===1) procF1(st.tab,new File([blob],'c.jpg',{type:'image/jpeg'}),out.toDataURL('image/jpeg',.50));
-    else procF2(st.tab,out.toDataURL('image/jpeg',.50));
+    if(id===1) procF1(st.tab,new File([blob],'c.jpg',{type:'image/jpeg'}),out.toDataURL('image/jpeg',.40));
+    else procF2(st.tab,out.toDataURL('image/jpeg',.40));
   },'image/jpeg',.92);
 }
 function useFull(id){
@@ -1541,7 +1541,7 @@ function useFull(id){
   const rd=new FileReader();
   rd.onload=e=>{
     if(id===1) procF1(st.tab,st.file,null,e.target.result);
-    else{const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;cv.getContext('2d').drawImage(img,0,0);procF2(st.tab,cv.toDataURL('image/jpeg',.50));};img.src=e.target.result;}
+    else{const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;cv.getContext('2d').drawImage(img,0,0);procF2(st.tab,cv.toDataURL('image/jpeg',.40));};img.src=e.target.result;}
   };rd.readAsDataURL(st.file);
 }
 function cancelCrop(id){closeCrop(id);if(id===1){const inp=document.getElementById(CS[1].tab+'-f1');if(inp)inp.value='';}}
@@ -1810,11 +1810,11 @@ function addF2uPhotos(tab,inp){
     reader.onload=e=>{
       const img=new Image();
       img.onload=()=>{
-        const maxH=320;const ratio=Math.min(1,maxH/img.height);
+        const maxH=240;const ratio=Math.min(1,maxH/img.height);
         const cv=document.createElement('canvas');
         cv.width=Math.round(img.width*ratio);cv.height=Math.round(img.height*ratio);
         cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-        f2u.push(cv.toDataURL('image/jpeg',.50));
+        f2u.push(cv.toDataURL('image/jpeg',.40));
         extra.idx++;
         processNext();
       };
@@ -1884,12 +1884,12 @@ function addMorePhotos(tab,id,inp){
       // Compress
       const img=new Image();
       img.onload=()=>{
-        const maxH=320;
+        const maxH=240;
         const cv=document.createElement('canvas');
         const ratio=Math.min(1,maxH/img.height);
         cv.width=Math.round(img.width*ratio);cv.height=Math.round(img.height*ratio);
         cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-        const jd=cv.toDataURL('image/jpeg',.50);
+        const jd=cv.toDataURL('image/jpeg',.40);
         rec.foto2.push(jd);
         loaded++;
         if(loaded===files.length){
@@ -3027,11 +3027,21 @@ function doDelRec(){
   cOv('ov-del');
   const {tab,id}=_delPend;
   if(!tab||!id) return;
-  const recDel=R[tab].find(r=>String(r.id)===id);
   R[tab]=R[tab].filter(r=>String(r.id)!==id);
-  // DG: eliminación atómica — solo borra este nodo, no toca otros
-  if(tab==='dg') sDGDelete(id);
-  else saveTab(tab);
+  // Borrado atómico por ID en Firebase — funciona para todos los tabs
+  if(tab==='dg'){
+    sDGDelete(id);
+  } else {
+    // Eliminar el nodo específico (no set() que sobreescribe todo)
+    REF_R.child(tab).child(id).remove()
+      .then(()=>fbSetStatus('ok','✅ Eliminado',new Date().toLocaleString('es-EC')))
+      .catch(()=>fbSetStatus('err','⚠️ Error eliminando',''));
+    // También eliminar fotos si tiene
+    REF_R.child(tab+'_fotos').child(id).remove().catch(()=>{});
+    // Actualizar localStorage sin fotos
+    try{const slim={rt:R.rt.map(_recSinFotos),rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
+      localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
+  }
   if(tab==='rt') renderRT();
   else if(tab==='dg') renderDG();
   else if(tab==='rs') renderRS();
@@ -3512,7 +3522,7 @@ function toJ(d,maxPx){return new Promise(r=>{const i=new Image();i.onload=()=>{
   const cv=document.createElement('canvas');
   cv.width=Math.round(i.width*scale);cv.height=Math.round(i.height*scale);
   cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);
-  r(cv.toDataURL('image/jpeg',.50));};i.onerror=()=>r(null);i.src=d;});}
+  r(cv.toDataURL('image/jpeg',.40));};i.onerror=()=>r(null);i.src=d;});}
 function getDim(d){return new Promise(r=>{const i=new Image();i.onload=()=>r({w:i.width,h:i.height});i.onerror=()=>r({w:1,h:1});i.src=d;});}
 
 // ─────────────────────────────────────────────
@@ -3902,20 +3912,18 @@ function loadStorage(){
 
 // Guardar RT en Firebase
 function sRT(){
-  // Guardar RT sin fotos en nodo principal; fotos en rt_fotos
-  const patch = {};
-  const fotosPatch = {};
-  (R.rt||[]).forEach(r=>{
-    if(r && r.id){
-      patch[r.id] = _recSinFotos(r);
-      if(r.foto2 && r.foto2.length>0) fotosPatch[r.id] = {foto2:r.foto2};
-    }
-  });
-  REF_R.child('rt').update(patch)
+  // set() completo del nodo rt (sin fotos) — garantiza sincronización de eliminaciones
+  const obj = {};
+  (R.rt||[]).forEach(r=>{ if(r&&r.id) obj[r.id]=_recSinFotos(r); });
+  REF_R.child('rt').set(obj)
     .then(()=>fbSetStatus('ok','✅ Guardado RT',new Date().toLocaleString('es-EC')))
     .catch(()=>fbSetStatus('err','⚠️ Error guardando RT',''));
-  if(Object.keys(fotosPatch).length)
-    REF_R.child('rt_fotos').update(fotosPatch).catch(()=>{});
+  // Fotos: update() por ID (no se eliminan fotos al editar metadatos)
+  const fPatch={};
+  (R.rt||[]).forEach(r=>{
+    if(r&&r.id&&r.foto2&&r.foto2.length>0) fPatch[r.id]={foto2:r.foto2};
+  });
+  if(Object.keys(fPatch).length) REF_R.child('rt_fotos').update(fPatch).catch(()=>{});
   try{const slim={rt:R.rt.map(_recSinFotos),rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
     localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
 }
@@ -4463,13 +4471,34 @@ async function exportMenuInteractivo(){
     }).catch(()=>resolve());
   });
 
-  // Serializar registros con todas las fotos embebidas
+  // Comprimir fotos para el menú interactivo (max 200px / q=0.35 → ~25KB c/u)
+  async function comprimirFotoMenu(dataUrl){
+    if(!dataUrl||!dataUrl.startsWith('data:image')) return dataUrl;
+    return new Promise(res=>{
+      const img=new Image();
+      img.onload=()=>{
+        const MAX=200;
+        const scale=Math.min(1,MAX/Math.max(img.width,img.height));
+        const cv=document.createElement('canvas');
+        cv.width=Math.round(img.width*scale);
+        cv.height=Math.round(img.height*scale);
+        cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+        res(cv.toDataURL('image/jpeg',.35));
+      };
+      img.onerror=()=>res(dataUrl);
+      img.src=dataUrl;
+    });
+  }
+
+  // Serializar registros con fotos comprimidas para email
   const rows = [];
   let n = 0;
   for(const rec of sortDG(data)){
     for(const ean of (rec.eans||[{ean:'',cantidad:'',pvp:''}])){
       n++;
       const tot = (parseFloat(ean.cantidad)||0)*(parseFloat(ean.pvp)||0);
+      // Comprimir fotos para exportación
+      const fotosComprimidas = await Promise.all((rec.foto2||[]).map(f=>comprimirFotoMenu(f)));
       rows.push({
         n,
         semana:   rec.semana||'',
@@ -4488,7 +4517,7 @@ async function exportMenuInteractivo(){
         obs:      rec.observaciones||'',
         tablaAsig:rec.tablaAsignacion||'',
         pedTras:  rec.pedidoTraslado||'',
-        fotos:    rec.foto2||[],
+        fotos:    fotosComprimidas,
         fecha:    (rec.fecha||'').substring(0,16),
       });
     }
