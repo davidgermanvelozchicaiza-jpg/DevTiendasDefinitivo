@@ -3037,10 +3037,8 @@ function doDelRec(){
       .then(()=>fbSetStatus('ok','✅ Eliminado',new Date().toLocaleString('es-EC')))
       .catch(()=>fbSetStatus('err','⚠️ Error eliminando',''));
     // También eliminar fotos si tiene
-    REF_R.child(tab+'_fotos').child(id).remove().catch(()=>{});
     // Actualizar localStorage sin fotos
-    try{const slim={rt:R.rt.map(_recSinFotos),rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
-      localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
+    try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
   }
   if(tab==='rt') renderRT();
   else if(tab==='dg') renderDG();
@@ -3799,14 +3797,8 @@ function loadStorage(){
 
     // Listener RT
     REF_R.child('rt').on('value', snap=>{
-      const inc=snap.val()?Object.values(snap.val()):[];
-      inc.forEach(rec=>{
-        const ex=R.rt.find(r=>String(r.id)===String(rec.id));
-        rec.foto2=(ex&&ex.foto2&&ex.foto2.length>0)?ex.foto2:(rec.foto2||[]);
-      });
-      R.rt=inc;
-      try{const slim={rt:R.rt.map(_recSinFotos),rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
-        localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
+      R.rt=snap.val()?Object.values(snap.val()):[];
+      try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
       renderRT();
       fbSetStatus('ok','✅ Sincronizado',new Date().toLocaleString('es-EC'));
     }, ()=>{
@@ -3819,16 +3811,8 @@ function loadStorage(){
     let _dgFirstLoad = true;
     let _dgPrevDecCount = 0;
     REF_R.child('dg').on('value', snap=>{
-      const val = snap.val();
-      const incoming = val ? Object.values(val) : [];
-      // Fusionar: preservar foto2 ya en memoria (vienen de dg_fotos listener)
-      incoming.forEach(rec=>{
-        const ex=R.dg.find(r=>String(r.id)===String(rec.id));
-        rec.foto2 = (ex&&ex.foto2&&ex.foto2.length>0) ? ex.foto2 : (rec.foto2||[]);
-      });
-      R.dg = incoming;
-      try{const slim={rt:R.rt,rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
-        localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
+      R.dg=snap.val()?Object.values(snap.val()):[];
+      try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
       updateDGStatusBanner();
       renderDG();
       autoFiltrarDGPorTienda();
@@ -3836,26 +3820,6 @@ function loadStorage(){
       try{const d=JSON.parse(localStorage.getItem('dr')||'{}');R.dg=d.dg||[];}catch(e){}
       renderDG();
     });
-
-    // Listener fotos DG — nodo separado para no saturar memoria principal
-    REF_R.child('dg_fotos').on('value', snap=>{
-      const val=snap.val();if(!val)return;
-      Object.entries(val).forEach(([id,data])=>{
-        const rec=R.dg.find(r=>String(r.id)===String(id));
-        if(rec&&data.foto2) rec.foto2=data.foto2;
-      });
-      renderDG();
-    });
-
-    // Listener RT fotos
-    REF_R.child('rt_fotos').on('value', snap=>{
-    const val=snap.val();if(!val)return;
-    Object.entries(val).forEach(([id,data])=>{
-      const rec=R.rt.find(r=>String(r.id)===String(id));
-      if(rec && data.foto2) rec.foto2=data.foto2;
-    });
-    renderRT();
-  });
   REF_R.child('rs').on('value', snap=>{
       R.rs = snap.val() ? Object.values(snap.val()) : [];
       try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
@@ -3912,20 +3876,13 @@ function loadStorage(){
 
 // Guardar RT en Firebase
 function sRT(){
-  // set() completo del nodo rt (sin fotos) — garantiza sincronización de eliminaciones
-  const obj = {};
-  (R.rt||[]).forEach(r=>{ if(r&&r.id) obj[r.id]=_recSinFotos(r); });
+  // set() completo — incluye fotos (ya comprimidas a 240px/0.40 ~30KB c/u)
+  const obj={};
+  (R.rt||[]).forEach(r=>{ if(r&&r.id) obj[r.id]=r; });
   REF_R.child('rt').set(obj)
     .then(()=>fbSetStatus('ok','✅ Guardado RT',new Date().toLocaleString('es-EC')))
     .catch(()=>fbSetStatus('err','⚠️ Error guardando RT',''));
-  // Fotos: update() por ID (no se eliminan fotos al editar metadatos)
-  const fPatch={};
-  (R.rt||[]).forEach(r=>{
-    if(r&&r.id&&r.foto2&&r.foto2.length>0) fPatch[r.id]={foto2:r.foto2};
-  });
-  if(Object.keys(fPatch).length) REF_R.child('rt_fotos').update(fPatch).catch(()=>{});
-  try{const slim={rt:R.rt.map(_recSinFotos),rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
-    localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
+  try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
 }
 
 // Guardar DG en Firebase — escritura atómica, solo el nodo dg
@@ -3933,57 +3890,34 @@ function sRT(){
 // update() es una escritura merge: no borra registros de otros dispositivos.
 // Se usa para DG porque múltiples dispositivos escriben concurrentemente.
 function _recSinFotos(r){
-  // Clon del registro SIN foto2 — para el nodo principal de Firebase
-  const c = Object.assign({}, r);
-  delete c.foto2;
-  return c;
+  // Mantener por compatibilidad con código existente
+  const c=Object.assign({},r); delete c.foto2; return c;
 }
 
 function sDG(soloIds){
-  const target = soloIds
-    ? R.dg.filter(r => soloIds.includes(String(r.id)))
+  const target=soloIds
+    ? R.dg.filter(r=>soloIds.includes(String(r.id)))
     : R.dg;
   if(!target.length) return;
-
-  const promises = [];
-  target.filter(r => r && r.id).forEach(r => {
-    const id = String(r.id);
-    // Nodo principal: SIN fotos (liviano, se sincroniza rápido entre dispositivos)
-    promises.push(
-      REF_R.child('dg').child(id).set(_recSinFotos(r))
-    );
-    // Nodo de fotos separado: solo si tiene fotos
-    if(r.foto2 && r.foto2.length > 0){
-      promises.push(
-        REF_R.child('dg_fotos').child(id).set({foto2: r.foto2})
-      );
-    }
-  });
-
+  // Guardar cada registro CON fotos (ya comprimidas ~30KB c/u)
+  const promises=target.filter(r=>r&&r.id).map(r=>
+    REF_R.child('dg').child(String(r.id)).set(r)
+  );
   Promise.all(promises)
-    .then(()=>{
-      fbSetStatus('ok','✅ Guardado DG',new Date().toLocaleString('es-EC'));
-    })
+    .then(()=>fbSetStatus('ok','✅ Guardado DG',new Date().toLocaleString('es-EC')))
     .catch(err=>{
-      console.error('Error guardando DG:', err);
+      console.error('Error DG:',err);
       fbSetStatus('err','⚠️ Error guardando — verifica conexión','');
-      showT('⚠️ Error al guardar en Firebase. Intenta de nuevo.');
+      showT('⚠️ Error al guardar. Intenta de nuevo.');
     });
-  // localStorage: guardar sin fotos para no llenar el storage local
-  try{
-    const slim = {rt:R.rt,rs:R.rs,req:R.req,
-      dg: R.dg.map(_recSinFotos)};
-    localStorage.setItem('dr', JSON.stringify(slim));
-  }catch(e){}
+  try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
 }
 
 // sDGDelete: elimina un registro específico de Firebase DG por su id
 function sDGDelete(id){
   REF_R.child('dg').child(id).remove()
     .catch(()=>fbSetStatus('err','⚠️ Error eliminando DG',''));
-  REF_R.child('dg_fotos').child(id).remove().catch(()=>{});
-  try{const slim={rt:R.rt,rs:R.rs,req:R.req,dg:R.dg.map(_recSinFotos)};
-    localStorage.setItem('dr',JSON.stringify(slim));}catch(e){}
+  try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
 }
 
 // Guardar RS en Firebase
@@ -4017,10 +3951,15 @@ function sW(){REF_WK.set(toFbObj(WK)).catch(()=>{try{localStorage.setItem('dw',J
 function fbSync(){
   fbSetStatus('wait','⏳ Sincronizando...');
   REF_R.once('value').then(snap=>{
-    const val=snap.val();
-    if(val){R.rt=val.rt?Object.values(val.rt):[];R.dg=val.dg?Object.values(val.dg):[];R.rs=val.rs?Object.values(val.rs):[];R.req=val.req?Object.values(val.req):[];}
+    const val=snap.val()||{};
+    R.rt =val.rt ?Object.values(val.rt) :[];
+    R.dg =val.dg ?Object.values(val.dg) :[];
+    R.rs =val.rs ?Object.values(val.rs) :[];
+    R.req=val.req?Object.values(val.req):[];
+    try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
     renderRT();renderDG();renderRS();renderREQ();updateBell();
-    fbSetStatus('ok','✅ Sincronizado',new Date().toLocaleString('es-EC'));showT('🔄 Datos actualizados');
+    fbSetStatus('ok','✅ Sincronizado',new Date().toLocaleString('es-EC'));
+    showT('🔄 Datos actualizados');
   }).catch(()=>{fbSetStatus('err','⚠️ Sin conexión','');showT('⚠️ No se pudo conectar');});
   REF_WK.once('value').then(snap=>{const val=snap.val();WK=val?Object.values(val):[];renderConsWeeks&&renderConsWeeks();});
 }
@@ -4457,19 +4396,8 @@ async function exportMenuInteractivo(){
   const fecha = new Date().toLocaleDateString('es-EC');
   const semana = data[0]?.semana || '';
 
-  // Recopilar fotos desde dg_fotos en Firebase si no están en memoria
-  await new Promise(resolve=>{
-    REF_R.child('dg_fotos').once('value').then(snap=>{
-      const val=snap.val();
-      if(val){
-        Object.entries(val).forEach(([id,d])=>{
-          const rec=data.find(r=>String(r.id)===String(id));
-          if(rec && d.foto2 && (!rec.foto2||!rec.foto2.length)) rec.foto2=d.foto2;
-        });
-      }
-      resolve();
-    }).catch(()=>resolve());
-  });
+  // Las fotos ya están dentro de cada registro en R.dg
+  // No se necesita cargar de nodo separado
 
   // Comprimir fotos para el menú interactivo (max 200px / q=0.35 → ~25KB c/u)
   async function comprimirFotoMenu(dataUrl){
