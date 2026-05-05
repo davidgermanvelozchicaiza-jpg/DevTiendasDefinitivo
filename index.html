@@ -675,6 +675,7 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
           <button class="btn" onclick="exportReporteFinalDG()" style="background:#7c3aed;color:#fff;padding:9px 15px;font-size:.84rem;font-weight:700;" title="Reporte final consolidado de todas las tiendas"><span class="ic">📋</span> Reporte Final Admin</button>
           <button id="dg-sort-tienda" class="btn" onclick="setDGSort('tienda')" style="background:#0369a1;color:#fff;padding:9px 13px;font-size:.84rem;font-weight:700;" title="Orden por Tienda (predeterminado)"><span class="ic">🏪</span> Por Tienda</button>
           <button id="dg-sort-ref" class="btn" onclick="setDGSort('ref')" style="background:#374151;color:#fff;padding:9px 13px;font-size:.84rem;font-weight:700;" title="Orden por DPTO → REF → EAN → Tienda"><span class="ic">🗂️</span> Por Referencia</button>
+          <button class="btn" onclick="exportMenuInteractivo()" style="background:#0f766e;color:#fff;padding:9px 15px;font-size:.84rem;font-weight:700;" title="Exportar menú HTML interactivo de consultas offline"><span class="ic">🌐</span> Menú Interactivo</button>
         </div>
         <div class="rw"><table>
           <thead><tr>
@@ -4435,6 +4436,304 @@ function runStoreMigration(){
     showT('🏪 Nombres de tienda actualizados');
   }
   localStorage.setItem('store_migration_v3','done');
+}
+
+// ─────────────────────────────────────────────
+// MENÚ INTERACTIVO DE CONSULTAS — exporta HTML standalone
+// ─────────────────────────────────────────────
+async function exportMenuInteractivo(){
+  showT('⏳ Generando menú interactivo...');
+  const data = R.dg || [];
+  if(!data.length){ showT('⚠️ No hay registros en Devolución General'); return; }
+
+  const fecha = new Date().toLocaleDateString('es-EC');
+  const semana = data[0]?.semana || '';
+
+  // Recopilar fotos desde dg_fotos en Firebase si no están en memoria
+  await new Promise(resolve=>{
+    REF_R.child('dg_fotos').once('value').then(snap=>{
+      const val=snap.val();
+      if(val){
+        Object.entries(val).forEach(([id,d])=>{
+          const rec=data.find(r=>String(r.id)===String(id));
+          if(rec && d.foto2 && (!rec.foto2||!rec.foto2.length)) rec.foto2=d.foto2;
+        });
+      }
+      resolve();
+    }).catch(()=>resolve());
+  });
+
+  // Serializar registros con todas las fotos embebidas
+  const rows = [];
+  let n = 0;
+  for(const rec of sortDG(data)){
+    for(const ean of (rec.eans||[{ean:'',cantidad:'',pvp:''}])){
+      n++;
+      const tot = (parseFloat(ean.cantidad)||0)*(parseFloat(ean.pvp)||0);
+      rows.push({
+        n,
+        semana:   rec.semana||'',
+        tienda:   rec.tienda||'',
+        dpto:     rec.dpto||'',
+        codigo:   rec.codigo||'',
+        proveedor:rec.proveedor||'',
+        ref:      rec.ref||'',
+        semIng:   rec.semIngreso||'',
+        ean:      ean.ean||'',
+        cant:     ean.cantidad||'',
+        pvpSin:   ean.pvp?'$'+parseFloat(ean.pvp).toFixed(2):'',
+        pvpTot:   tot?'$'+tot.toFixed(2):'',
+        motivo:   rec.motivo||'',
+        decision: rec.decision||'',
+        obs:      rec.observaciones||'',
+        tablaAsig:rec.tablaAsignacion||'',
+        pedTras:  rec.pedidoTraslado||'',
+        fotos:    rec.foto2||[],
+        fecha:    (rec.fecha||'').substring(0,16),
+      });
+    }
+  }
+
+  // Valores únicos para filtros
+  const tiendas   = [...new Set(rows.map(r=>r.tienda).filter(Boolean))].sort();
+  const proveedores = [...new Set(rows.map(r=>r.proveedor).filter(Boolean))].sort();
+  const dptos     = [...new Set(rows.map(r=>r.dpto).filter(Boolean))].sort();
+  const decisiones = [...new Set(rows.map(r=>r.decision).filter(Boolean))].sort();
+
+  const dataJson = JSON.stringify(rows);
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deprati — Devoluciones${semana?' Sem.'+semana:''} — ${fecha}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh;}
+header{background:linear-gradient(135deg,#cc0000,#991111);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);}
+header h1{font-size:1.15rem;font-weight:800;letter-spacing:.5px;}
+header span{font-size:.78rem;opacity:.85;}
+.filters{background:#fff;padding:14px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;border-bottom:2px solid #e2e8f0;position:sticky;top:72px;z-index:90;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.filters label{font-size:.72rem;font-weight:700;color:#475569;display:flex;flex-direction:column;gap:3px;}
+.filters select,.filters input{border:1.5px solid #cbd5e1;border-radius:7px;padding:6px 10px;font-size:.82rem;background:#f8fafc;color:#1e293b;min-width:150px;outline:none;}
+.filters select:focus,.filters input:focus{border-color:#cc0000;box-shadow:0 0 0 2px rgba(204,0,0,.1);}
+.btn-reset{background:#cc0000;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:.82rem;font-weight:700;cursor:pointer;margin-top:auto;white-space:nowrap;}
+.btn-reset:hover{background:#991111;}
+.stats{padding:10px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:16px;flex-wrap:wrap;font-size:.75rem;color:#64748b;}
+.stats b{color:#cc0000;font-size:.9rem;}
+main{padding:16px 12px;}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:12px;overflow:hidden;border:1px solid #e2e8f0;display:flex;gap:0;}
+.card:hover{box-shadow:0 4px 18px rgba(0,0,0,.13);transform:translateY(-1px);transition:all .15s;}
+.card-fotos{width:120px;min-width:120px;background:#f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;cursor:pointer;}
+.card-fotos img{width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;}
+.card-fotos .no-foto{color:#94a3b8;font-size:.7rem;text-align:center;}
+.card-body{flex:1;padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px 12px;}
+.field{display:flex;flex-direction:column;gap:1px;}
+.field-lbl{font-size:.62rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;}
+.field-val{font-size:.78rem;color:#1e293b;font-weight:500;word-break:break-word;}
+.dec-dev{background:#fee2e2;color:#991b1b;border-radius:5px;padding:2px 7px;font-size:.72rem;font-weight:700;display:inline-block;}
+.dec-nodev{background:#dcfce7;color:#166534;border-radius:5px;padding:2px 7px;font-size:.72rem;font-weight:700;display:inline-block;}
+.dec-rev{background:#fef9c3;color:#854d0e;border-radius:5px;padding:2px 7px;font-size:.72rem;font-weight:700;display:inline-block;}
+.card-num{background:#cc0000;color:#fff;font-size:.7rem;font-weight:800;border-radius:0 0 8px 0;padding:2px 7px;position:absolute;top:0;left:0;}
+.card{position:relative;}
+.empty{text-align:center;padding:60px 20px;color:#94a3b8;}
+.empty h2{font-size:1.2rem;margin-bottom:8px;}
+/* Lightbox */
+#lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+#lb.show{display:flex;}
+#lb img{max-width:92vw;max-height:82vh;object-fit:contain;border-radius:8px;box-shadow:0 4px 32px rgba(0,0,0,.5);}
+#lb-close{position:absolute;top:14px;right:18px;color:#fff;font-size:2rem;cursor:pointer;line-height:1;}
+#lb-nav{display:flex;gap:20px;}
+#lb-nav button{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:8px 20px;font-size:.9rem;cursor:pointer;}
+#lb-nav button:hover{background:rgba(255,255,255,.3);}
+#lb-info{color:#cbd5e1;font-size:.8rem;}
+@media(max-width:600px){
+  .card{flex-direction:column;}
+  .card-fotos{width:100%;flex-direction:row;justify-content:flex-start;overflow-x:auto;min-height:80px;}
+  .card-fotos img{width:80px;min-width:80px;height:70px;}
+  .filters{top:62px;}
+  header{padding:12px 14px;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🏬 DEPRATI — Menú de Consultas Devoluciones</h1>
+    <span>Generado: ${fecha}${semana?' &nbsp;|&nbsp; Semana: '+semana:''}</span>
+  </div>
+  <span id="hdr-count" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.15);padding:5px 12px;border-radius:8px;"></span>
+</header>
+
+<div class="filters">
+  <label>🏪 Tienda
+    <select id="f-tienda" onchange="filtrar()">
+      <option value="">Todas las tiendas</option>
+      ${tiendas.map(t=>`<option value="${t}">${t}</option>`).join('')}
+    </select>
+  </label>
+  <label>🏭 Proveedor
+    <select id="f-prov" onchange="filtrar()">
+      <option value="">Todos los proveedores</option>
+      ${proveedores.map(p=>`<option value="${p}">${p}</option>`).join('')}
+    </select>
+  </label>
+  <label>🗂️ DPTO
+    <select id="f-dpto" onchange="filtrar()">
+      <option value="">Todos los dptos</option>
+      ${dptos.map(d=>`<option value="${d}">${d}</option>`).join('')}
+    </select>
+  </label>
+  <label>✅ Decisión
+    <select id="f-dec" onchange="filtrar()">
+      <option value="">Todas las decisiones</option>
+      ${decisiones.map(d=>`<option value="${d}">${d}</option>`).join('')}
+    </select>
+  </label>
+  <label>🔍 Buscar
+    <input type="text" id="f-buscar" placeholder="REF, EAN, código..." oninput="filtrar()">
+  </label>
+  <button class="btn-reset" onclick="resetFiltros()">✕ Limpiar</button>
+</div>
+
+<div class="stats" id="stats"></div>
+<main id="main"></main>
+
+<!-- Lightbox -->
+<div id="lb" onclick="if(event.target===this)closeLb()">
+  <span id="lb-close" onclick="closeLb()">×</span>
+  <img id="lb-img" src="" alt="">
+  <div id="lb-info"></div>
+  <div id="lb-nav">
+    <button onclick="lbNav(-1)">◀ Anterior</button>
+    <button onclick="lbNav(1)">Siguiente ▶</button>
+  </div>
+</div>
+
+<script>
+const DATA=${dataJson};
+let _filtered=DATA;
+let _lbRec=null,_lbIdx=0;
+
+function decClass(d){
+  if(!d)return'';
+  if(d.includes('Devolución')&&!d.includes('No'))return'dec-dev';
+  if(d.includes('No Devolución'))return'dec-nodev';
+  return'dec-rev';
+}
+
+function filtrar(){
+  const vT=document.getElementById('f-tienda').value;
+  const vP=document.getElementById('f-prov').value;
+  const vD=document.getElementById('f-dpto').value;
+  const vDec=document.getElementById('f-dec').value;
+  const vB=document.getElementById('f-buscar').value.toLowerCase().trim();
+  _filtered=DATA.filter(r=>{
+    if(vT&&r.tienda!==vT)return false;
+    if(vP&&r.proveedor!==vP)return false;
+    if(vD&&r.dpto!==vD)return false;
+    if(vDec&&r.decision!==vDec)return false;
+    if(vB){
+      const hay=Object.values(r).join(' ').toLowerCase();
+      if(!hay.includes(vB))return false;
+    }
+    return true;
+  });
+  renderCards();
+}
+
+function resetFiltros(){
+  ['f-tienda','f-prov','f-dpto','f-dec'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-buscar').value='';
+  filtrar();
+}
+
+function renderCards(){
+  const main=document.getElementById('main');
+  const stats=document.getElementById('stats');
+  const hdr=document.getElementById('hdr-count');
+  hdr.textContent=_filtered.length+' registro'+(\_filtered.length!==1?'s':'');
+  const devs=_filtered.filter(r=>r.decision&&r.decision.includes('Devolución')&&!r.decision.includes('No')).length;
+  const noDevs=_filtered.filter(r=>r.decision&&r.decision.includes('No Devolución')).length;
+  const pend=_filtered.filter(r=>!r.decision||r.decision==='').length;
+  const tiendas=[...new Set(_filtered.map(r=>r.tienda).filter(Boolean))].length;
+  stats.innerHTML=\`<span>Registros: <b>\${_filtered.length}</b></span>
+    <span>Tiendas: <b>\${tiendas}</b></span>
+    <span style="color:#991b1b">Devoluciones: <b>\${devs}</b></span>
+    <span style="color:#166534">No Devolución: <b>\${noDevs}</b></span>
+    <span style="color:#854d0e">Pendientes: <b>\${pend}</b></span>\`;
+  if(!_filtered.length){
+    main.innerHTML='<div class="empty"><h2>Sin resultados</h2><p>Ajusta los filtros para ver registros.</p></div>';
+    return;
+  }
+  main.innerHTML=_filtered.map((r,i)=>{
+    const fotosHtml=r.fotos&&r.fotos.length
+      ?r.fotos.map((f,fi)=>\`<img src="\${f}" alt="Foto \${fi+1}" onclick="openLb(\${i},\${fi})" loading="lazy">\`).join('')
+      :'<span class="no-foto">📷 Sin foto</span>';
+    const dc=decClass(r.decision);
+    return \`<div class="card">
+      <span class="card-num">#\${r.n}</span>
+      <div class="card-fotos" onclick="if(event.target.tagName!=='IMG'&&r.fotos.length)openLb(\${i},0)">\${fotosHtml}</div>
+      <div class="card-body">
+        <div class="field"><span class="field-lbl">Semana</span><span class="field-val">\${r.semana}</span></div>
+        <div class="field"><span class="field-lbl">Tienda</span><span class="field-val">\${r.tienda}</span></div>
+        <div class="field"><span class="field-lbl">DPTO</span><span class="field-val">\${r.dpto}</span></div>
+        <div class="field"><span class="field-lbl">Código</span><span class="field-val">\${r.codigo}</span></div>
+        <div class="field"><span class="field-lbl">Proveedor</span><span class="field-val">\${r.proveedor}</span></div>
+        <div class="field"><span class="field-lbl">REF</span><span class="field-val">\${r.ref}</span></div>
+        <div class="field"><span class="field-lbl">Sem.Ing.</span><span class="field-val">\${r.semIng}</span></div>
+        <div class="field"><span class="field-lbl">EAN/SKU</span><span class="field-val">\${r.ean}</span></div>
+        <div class="field"><span class="field-lbl">Cant.</span><span class="field-val">\${r.cant}</span></div>
+        <div class="field"><span class="field-lbl">PVP s/IVA</span><span class="field-val">\${r.pvpSin}</span></div>
+        <div class="field"><span class="field-lbl">PVP Total</span><span class="field-val">\${r.pvpTot}</span></div>
+        <div class="field"><span class="field-lbl">Motivo</span><span class="field-val">\${r.motivo}</span></div>
+        <div class="field"><span class="field-lbl">Decisión</span><span class="field-val"><span class="\${dc}">\${r.decision||'Pendiente'}</span></span></div>
+        <div class="field"><span class="field-lbl">Observaciones</span><span class="field-val">\${r.obs}</span></div>
+        \${r.tablaAsig?\`<div class="field"><span class="field-lbl">Tabla Asig.</span><span class="field-val">\${r.tablaAsig}</span></div>\`:''}
+        \${r.pedTras?\`<div class="field"><span class="field-lbl"># Ped.Trasl.</span><span class="field-val">\${r.pedTras}</span></div>\`:''}
+        <div class="field"><span class="field-lbl">Fecha</span><span class="field-val">\${r.fecha}</span></div>
+      </div>
+    </div>\`;
+  }).join('');
+}
+
+function openLb(recIdx,fotoIdx){
+  const r=_filtered[recIdx];
+  if(!r||!r.fotos||!r.fotos.length)return;
+  _lbRec=r;_lbIdx=fotoIdx;
+  document.getElementById('lb-img').src=r.fotos[fotoIdx];
+  document.getElementById('lb-info').textContent=(fotoIdx+1)+' / '+r.fotos.length+' — '+r.tienda+' | '+r.ref;
+  document.getElementById('lb').classList.add('show');
+}
+function closeLb(){document.getElementById('lb').classList.remove('show');}
+function lbNav(d){
+  if(!_lbRec)return;
+  _lbIdx=(_lbIdx+d+_lbRec.fotos.length)%_lbRec.fotos.length;
+  document.getElementById('lb-img').src=_lbRec.fotos[_lbIdx];
+  document.getElementById('lb-info').textContent=(_lbIdx+1)+' / '+_lbRec.fotos.length+' — '+_lbRec.tienda+' | '+_lbRec.ref;
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeLb();
+  if(e.key==='ArrowLeft')lbNav(-1);
+  if(e.key==='ArrowRight')lbNav(1);
+});
+
+// Arrancar
+filtrar();
+<\/script>
+</body>
+</html>`;
+
+  // Descargar
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `Deprati_Devoluciones${semana?'_Sem'+semana:''}_${fecha.replace(/\//g,'-')}.html`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  showT('✅ Menú interactivo descargado');
 }
 
 // ─────────────────────────────────────────────
