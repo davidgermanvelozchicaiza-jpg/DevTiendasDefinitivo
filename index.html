@@ -2657,7 +2657,7 @@ async function exportPDFTienda(){
       rn++;
       const tot=(parseFloat(ean.cantidad)||0)*(parseFloat(ean.pvp)||0);
       // Calcular altura dinámica de fila según líneas de Motivo y Observaciones
-      const fsCelda=7;
+      const fsCelda=11;
       const motivoLines=doc.splitTextToSize(rec.motivo||'',cW[12]-2).length;
       const obsLines=doc.splitTextToSize(rec.observaciones||'',cW[14]-2).length;
       const maxLines=Math.max(1,motivoLines,obsLines);
@@ -2672,7 +2672,7 @@ async function exportPDFTienda(){
       doc.setTextColor(40);doc.setFont(undefined,'normal');
       let x=ML;
       cells.forEach((t2,i)=>{
-        cellText(doc,t2,x,y,cW[i],RH,i===12||i===14?fsCelda:7);
+        cellText(doc,t2,x,y,cW[i],RH,i===12||i===14?fsCelda:11);
         x+=cW[i];
       });
       if(rec.foto2?.length>0){
@@ -3459,7 +3459,7 @@ async function exportPDF(mode){
 
   // Helper para calcular altura dinámica de fila
   function calcRH(rec,ean){
-    const fsCelda=7;
+    const fsCelda=11;
     const motivoLines=doc.splitTextToSize(rec.motivo||'',cW[12]-2).length;
     const obsLines=doc.splitTextToSize(rec.observaciones||'',cW[14]-2).length;
     const maxLines=Math.max(1,motivoLines,obsLines);
@@ -3484,7 +3484,7 @@ async function exportPDF(mode){
         if(rn%2===0)doc.setFillColor(255,245,245);else doc.setFillColor(255,255,255);
         doc.setDrawColor(218,218,218);doc.setLineWidth(0.2);doc.rect(ML,y,usW,RH,'FD');
         doc.setTextColor(40);doc.setFont(undefined,'normal');
-        let x=ML;cells.forEach((t,i)=>{cellTextPDF(doc,t,x,y,cW[i],RH,i===12||i===14?7:7);x+=cW[i];});
+        let x=ML;cells.forEach((t,i)=>{cellTextPDF(doc,t,x,y,cW[i],RH,i===12||i===14?11:11);x+=cW[i];});
         // Draw all photos side by side in last column
         if(rec.foto2?.length>0){
           const fotoX=ML+cW.slice(0,-1).reduce((a,b)=>a+b,0);
@@ -3544,7 +3544,7 @@ async function exportPDF(mode){
         if(rn%2===0)doc.setFillColor(255,245,245);else doc.setFillColor(255,255,255);
         doc.setDrawColor(218,218,218);doc.setLineWidth(0.2);doc.rect(ML,y,usW,RH,'FD');
         doc.setTextColor(40);doc.setFont(undefined,'normal');
-        let x=ML;cells.forEach((t,i)=>{cellTextPDF(doc,t,x,y,cW[i],RH,7);x+=cW[i];});
+        let x=ML;cells.forEach((t,i)=>{cellTextPDF(doc,t,x,y,cW[i],RH,11);x+=cW[i];});
         if(rec.foto2?.length>0){
           const fX3=ML+cW.slice(0,-1).reduce((a,b)=>a+b,0);
           let fx3=fX3+1;
