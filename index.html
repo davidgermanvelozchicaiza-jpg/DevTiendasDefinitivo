@@ -2616,10 +2616,22 @@ async function exportPDFTienda(){
   const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3'});
   const pW=doc.internal.pageSize.getWidth(),pH=doc.internal.pageSize.getHeight();
   const ML=7,usW=pW-ML-7;
-  // Column widths sum to 406mm (A3 landscape usable width)
-  const cW=[7,20,26,13,20,33,13,20,26,13,20,20,39,26,39,26,45];
-  const cN=['#','Semana','Tienda','DPTO','Código','Proveedor','REF','Sem.Ingreso','EAN/SKU','Cantidad','PVP s/IVA','PVP Total','Motivo','Decisión','Observaciones','Fecha','Fotos'];
-  const HH=7,RH=IH+3;
+  // Column widths sum to 406mm (A3 landscape usable width) — sin columna Fecha, Motivo y Observaciones ampliadas
+  const cW=[7,20,26,13,20,33,13,20,26,13,20,20,58,26,58,45];
+  const cN=['#','Semana','Tienda','DPTO','Código','Proveedor','REF','Sem.Ingreso','EAN/SKU','Cantidad','PVP s/IVA','PVP Total','Motivo','Decisión','Observaciones','Fotos'];
+  const HH=7;
+  // Helper: dibuja celda con texto wrapeado y centrado verticalmente
+  function cellText(doc,text,x,y,w,rowH,fontSize){
+    doc.setFontSize(fontSize);
+    const lns=doc.splitTextToSize(String(text),w-2);
+    const lh=fontSize*0.3528+1.5;
+    const totalH=lns.length*lh;
+    const startY=y+(rowH-totalH)/2+lh*0.72;
+    lns.forEach((ln,li)=>{
+      const tw=doc.getTextWidth(ln);
+      doc.text(ln,x+(w-tw)/2,startY+li*lh);
+    });
+  }
   function drawHdr(y,pg){
     doc.setFontSize(13);doc.setTextColor(204,0,0);doc.text('DEPRATI — REGISTRO DE NOVEDADES',ML,y+5);
     doc.setFontSize(7.5);doc.setTextColor(80);
@@ -2643,24 +2655,34 @@ async function exportPDFTienda(){
   for(const rec of sortR(data)){
     for(const ean of (rec.eans||[{ean:'',cantidad:'',pvp:''}])){
       rn++;
-      if(y+RH>pH-7){doc.addPage();pn++;y=drawHdr(3,pn);}
       const tot=(parseFloat(ean.cantidad)||0)*(parseFloat(ean.pvp)||0);
+      // Calcular altura dinámica de fila según líneas de Motivo y Observaciones
+      const fsCelda=7;
+      const motivoLines=doc.splitTextToSize(rec.motivo||'',cW[12]-2).length;
+      const obsLines=doc.splitTextToSize(rec.observaciones||'',cW[14]-2).length;
+      const maxLines=Math.max(1,motivoLines,obsLines);
+      const lhCelda=fsCelda*0.3528+1.5;
+      const RH=Math.max(IH+3, maxLines*lhCelda+6);
+      if(y+RH>pH-7){doc.addPage();pn++;y=drawHdr(3,pn);}
       const cells=[String(rn),rec.semana||'',rec.tienda||'',rec.dpto||'',rec.codigo||'',rec.proveedor||'',rec.ref||'',
         rec.semIngreso||'',ean.ean||'',String(ean.cantidad||''),fPVP(ean),tot?'$'+tot.toFixed(2):'',
-        (rec.motivo||'').substring(0,28),rec.decision||'',(rec.observaciones||'').substring(0,28),
-        (rec.fecha||'').substring(0,16),''];
+        rec.motivo||'',rec.decision||'',rec.observaciones||'',''];
       if(rn%2===0)doc.setFillColor(255,245,245);else doc.setFillColor(255,255,255);
       doc.setDrawColor(218,218,218);doc.setLineWidth(0.2);doc.rect(ML,y,usW,RH,'FD');
-      doc.setTextColor(40);doc.setFontSize(14);doc.setFont(undefined,'normal');
-      let x=ML;cells.forEach((t2,i)=>{doc.text(String(t2),x+1,y+7,{maxWidth:cW[i]-1.4});x+=cW[i];});
+      doc.setTextColor(40);doc.setFont(undefined,'normal');
+      let x=ML;
+      cells.forEach((t2,i)=>{
+        cellText(doc,t2,x,y,cW[i],RH,i===12||i===14?fsCelda:7);
+        x+=cW[i];
+      });
       if(rec.foto2?.length>0){
         const fX=ML+cW.slice(0,-1).reduce((a,b)=>a+b,0);
         let fx2=fX+1;
         for(const fsrc of rec.foto2){
           try{
             const j=await toJ(fsrc,1200);
-            if(j){const di=await getDim(j);const iW=Math.min(Math.round((IH-2)*(di.w/di.h)),cW[cW.length-1]-2);
-              if(fx2+iW<=fX+cW[cW.length-1]){doc.addImage(j,'JPEG',fx2,y+1,iW,IH-2);fx2+=iW+1;}}
+            if(j){const di=await getDim(j);const iW=Math.min(Math.round((RH-2)*(di.w/di.h)),cW[cW.length-1]-2);
+              if(fx2+iW<=fX+cW[cW.length-1]){doc.addImage(j,'JPEG',fx2,y+1,iW,RH-2);fx2+=iW+1;}}
           }catch(e){}
         }
       }
@@ -3383,10 +3405,22 @@ async function exportPDF(mode){
   const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3'});
   const pW=doc.internal.pageSize.getWidth(),pH=doc.internal.pageSize.getHeight();
   const ML=7,usW=pW-ML-7;
-  // Column widths sum to 406mm (A3 landscape usable width)
-  const cW=[7,20,26,13,20,33,13,20,26,13,20,20,39,26,39,26,45];
-  const cN=['#','Semana','Tienda','DPTO','Código','Proveedor','REF','Sem.Ingreso','EAN/SKU','Cantidad','PVP s/IVA','PVP Total','Motivo','Decisión','Observaciones','Fecha','Fotos'];
-  const HH=7,RH=IH+3;
+  // Column widths sum to 406mm (A3 landscape usable width) — sin columna Fecha, Motivo y Observaciones ampliadas
+  const cW=[7,20,26,13,20,33,13,20,26,13,20,20,58,26,58,45];
+  const cN=['#','Semana','Tienda','DPTO','Código','Proveedor','REF','Sem.Ingreso','EAN/SKU','Cantidad','PVP s/IVA','PVP Total','Motivo','Decisión','Observaciones','Fotos'];
+  const HH=7;
+  // Helper: dibuja celda con texto wrapeado y centrado verticalmente
+  function cellTextPDF(doc,text,x,y,w,rowH,fontSize){
+    doc.setFontSize(fontSize);
+    const lns=doc.splitTextToSize(String(text),w-2);
+    const lh=fontSize*0.3528+1.5;
+    const totalH=lns.length*lh;
+    const startY=y+(rowH-totalH)/2+lh*0.72;
+    lns.forEach((ln,li)=>{
+      const tw=doc.getTextWidth(ln);
+      doc.text(ln,x+(w-tw)/2,startY+li*lh);
+    });
+  }
 
   function drawPageHeader(doc,y,pageNum,subtitle){
     doc.setFontSize(13);doc.setTextColor(204,0,0);
@@ -3423,11 +3457,22 @@ async function exportPDF(mode){
     return y+8;
   }
 
+  // Helper para calcular altura dinámica de fila
+  function calcRH(rec,ean){
+    const fsCelda=7;
+    const motivoLines=doc.splitTextToSize(rec.motivo||'',cW[12]-2).length;
+    const obsLines=doc.splitTextToSize(rec.observaciones||'',cW[14]-2).length;
+    const maxLines=Math.max(1,motivoLines,obsLines);
+    const lhCelda=fsCelda*0.3528+1.5;
+    return Math.max(IH+3, maxLines*lhCelda+6);
+  }
+
   async function drawRows(doc,recs,startY,pageNum,color){
     let y=startY,rn=0;
     for(const rec of (mode==='dg'?sortDG(recs):sortR(recs))){
       for(const ean of (rec.eans||[{ean:'',cantidad:'',pvp:''}])){
         rn++;
+        const RH=calcRH(rec,ean);
         if(y+RH>pH-7){
           doc.addPage();pageNum++;
           y=drawPageHeader(doc,3,pageNum);
@@ -3435,12 +3480,11 @@ async function exportPDF(mode){
         const tot=(parseFloat(ean.cantidad)||0)*(parseFloat(ean.pvp)||0);
         const cells=[String(rn),rec.semana||'',rec.tienda||'',rec.dpto||'',rec.codigo||'',rec.proveedor||'',rec.ref||'',
           rec.semIngreso||'',ean.ean||'',String(ean.cantidad||''),fPVP(ean),tot?'$'+tot.toFixed(2):'',
-          (rec.motivo||'').substring(0,28),rec.decision||'',(rec.observaciones||'').substring(0,28),
-          (rec.fecha||'').substring(0,16),''];
+          rec.motivo||'',rec.decision||'',rec.observaciones||'',''];
         if(rn%2===0)doc.setFillColor(255,245,245);else doc.setFillColor(255,255,255);
         doc.setDrawColor(218,218,218);doc.setLineWidth(0.2);doc.rect(ML,y,usW,RH,'FD');
-        doc.setTextColor(40);doc.setFontSize(14);doc.setFont(undefined,'normal');
-        let x=ML;cells.forEach((t,i)=>{doc.text(String(t),x+1,y+7,{maxWidth:cW[i]-1.4});x+=cW[i];});
+        doc.setTextColor(40);doc.setFont(undefined,'normal');
+        let x=ML;cells.forEach((t,i)=>{cellTextPDF(doc,t,x,y,cW[i],RH,i===12||i===14?7:7);x+=cW[i];});
         // Draw all photos side by side in last column
         if(rec.foto2?.length>0){
           const fotoX=ML+cW.slice(0,-1).reduce((a,b)=>a+b,0);
@@ -3451,9 +3495,9 @@ async function exportPDF(mode){
               const j=await toJ(fsrc,1200);
               if(j){
                 const di=await getDim(j);
-                const iW=Math.min(Math.round((IH-2)*(di.w/di.h)),fotoColW-2);
+                const iW=Math.min(Math.round((RH-2)*(di.w/di.h)),fotoColW-2);
                 if(fx+iW<=fotoX+fotoColW){
-                  doc.addImage(j,'JPEG',fx,y+1,iW,IH-2);
+                  doc.addImage(j,'JPEG',fx,y+1,iW,RH-2);
                   fx+=iW+1;
                 }
               }
@@ -3491,23 +3535,23 @@ async function exportPDF(mode){
     for(const rec of (mode==='dg'?sortDG(data):sortR(data))){
       for(const ean of (rec.eans||[{ean:'',cantidad:'',pvp:''}])){
         rn++;
+        const RH=calcRH(rec,ean);
         if(y+RH>pH-7){doc.addPage();pageNum++;y=drawPageHeader(doc,3,pageNum);}
         const tot=(parseFloat(ean.cantidad)||0)*(parseFloat(ean.pvp)||0);
         const cells=[String(rn),rec.semana||'',rec.tienda||'',rec.dpto||'',rec.codigo||'',rec.proveedor||'',rec.ref||'',
           rec.semIngreso||'',ean.ean||'',String(ean.cantidad||''),fPVP(ean),tot?'$'+tot.toFixed(2):'',
-          (rec.motivo||'').substring(0,28),rec.decision||'',(rec.observaciones||'').substring(0,28),
-          (rec.fecha||'').substring(0,16),''];
+          rec.motivo||'',rec.decision||'',rec.observaciones||'',''];
         if(rn%2===0)doc.setFillColor(255,245,245);else doc.setFillColor(255,255,255);
         doc.setDrawColor(218,218,218);doc.setLineWidth(0.2);doc.rect(ML,y,usW,RH,'FD');
-        doc.setTextColor(40);doc.setFontSize(14);doc.setFont(undefined,'normal');
-        let x=ML;cells.forEach((t,i)=>{doc.text(String(t),x+1,y+7,{maxWidth:cW[i]-1.4});x+=cW[i];});
+        doc.setTextColor(40);doc.setFont(undefined,'normal');
+        let x=ML;cells.forEach((t,i)=>{cellTextPDF(doc,t,x,y,cW[i],RH,7);x+=cW[i];});
         if(rec.foto2?.length>0){
           const fX3=ML+cW.slice(0,-1).reduce((a,b)=>a+b,0);
           let fx3=fX3+1;
           for(const fsrc of rec.foto2){
             try{const j=await toJ(fsrc,1200);
-              if(j){const di=await getDim(j);const iW=Math.min(Math.round((IH-2)*(di.w/di.h)),cW[cW.length-1]-2);
-                if(fx3+iW<=fX3+cW[cW.length-1]){doc.addImage(j,'JPEG',fx3,y+1,iW,IH-2);fx3+=iW+1;}}
+              if(j){const di=await getDim(j);const iW=Math.min(Math.round((RH-2)*(di.w/di.h)),cW[cW.length-1]-2);
+                if(fx3+iW<=fX3+cW[cW.length-1]){doc.addImage(j,'JPEG',fx3,y+1,iW,RH-2);fx3+=iW+1;}}
             }catch(e){}
           }
         }
