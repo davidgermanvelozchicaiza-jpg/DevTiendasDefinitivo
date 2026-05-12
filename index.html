@@ -586,6 +586,8 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
             <option>T035 -PLAZANAVONA</option><option>T038 -LASCALA CUMBAYA</option><option>T040 -CONDADO</option><option>T041 -EL RECREO</option><option>T043 -MALL DEL PACIFICO</option>
             <option>T047 -EL PORTAL CARAPUNGO</option><option>T053 -MACHALA</option><option>T054 -BOMBOLI</option><option>T080 -INTERNET</option>
           </select>
+          <button id="rt-sort-tienda" class="btn" onclick="setRTSort('tienda')" style="background:#0369a1;color:#fff;padding:9px 13px;font-size:.84rem;font-weight:700;" title="Orden por Tienda → DPTO → Código"><span class="ic">🏪</span> Por Tienda</button>
+          <button id="rt-sort-ref" class="btn" onclick="setRTSort('ref')" style="background:#374151;color:#fff;padding:9px 13px;font-size:.84rem;font-weight:700;" title="Orden por DPTO → REF → EAN → Tienda"><span class="ic">🗂️</span> Por Referencia</button>
           <button class="btn bg sm" onclick="exportXL('rt')"><span class="ic">📊</span> Excel</button>
           <button class="btn bs sm" onclick="exportPDF('rt')"><span class="ic">📄</span> PDF Originales</button>
           <button class="btn bw sm" onclick="openWkRT('orig')" style="background:#5b21b6;"><span class="ic">📁</span> Guardar en Consultar</button>
@@ -618,6 +620,8 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
             <button class="btn bg sm" onclick="exportXLTienda()"><span class="ic">📊</span> Excel Tiendas</button>
             <button class="btn bs sm" onclick="exportPDFTienda()"><span class="ic">📄</span> PDF Tiendas</button>
             <button class="btn bw sm" onclick="openWkRT('tienda')" style="background:#5b21b6;"><span class="ic">📁</span> Guardar en Consultar</button>
+            <button id="rtc-sort-tienda" class="btn" onclick="setRTCSort('tienda')" style="background:#0369a1;color:#fff;padding:9px 13px;font-size:.84rem;font-weight:700;" title="Orden por Tienda → DPTO → Código"><span class="ic">🏪</span> Por Tienda</button>
+            <button id="rtc-sort-ref" class="btn" onclick="setRTCSort('ref')" style="background:#374151;color:#fff;padding:9px 13px;font-size:.84rem;font-weight:700;" title="Orden por DPTO → REF → EAN → Tienda"><span class="ic">🗂️</span> Por Referencia</button>
             <button class="btn bnw sm" onclick="renderRTCopias();showT('🔄 Actualizado')" style="background:#0369a1;"><span class="ic">🔄</span> Actualizar</button>
           </div>
           <div class="rw"><table>
@@ -687,6 +691,9 @@ tr[style*="background:#f0fdf4"]:hover td{background:#dcfce7!important;}
       </div>
       <!-- Panel Valores por Proveedor -->
       <div id="dg-panel-prov" style="display:none;border:1.5px solid #e0e0e0;border-radius:0 0 10px 10px;padding:14px;background:#fff;">
+        <div class="fb" style="margin-bottom:8px;">
+          <span style="font-size:.78rem;background:#fee2e2;color:#991b1b;border-radius:6px;padding:4px 10px;font-weight:700;">📦 Solo registros con decisión: Devolución</span>
+        </div>
         <div class="fb" style="margin-bottom:12px;">
           <button class="btn bg sm" onclick="exportProvSummaryXL()"><span class="ic">📊</span> Exportar Excel</button>
           <button class="btn bnw sm" onclick="renderProvSummary()"><span class="ic">🔄</span> Actualizar</button>
@@ -1203,8 +1210,8 @@ function switchDGTab(tab,btn){
 }
 function renderProvSummary(){
   const wrap=document.getElementById('prov-summary-wrap');
-  const data=R.dg;
-  if(!data.length){wrap.innerHTML='<p style="color:#aaa;padding:20px;text-align:center;">Sin registros en Devolución General.</p>';return;}
+  const data=R.dg.filter(rec=>rec.decision==='Devolución');
+  if(!data.length){wrap.innerHTML='<p style="color:#aaa;padding:20px;text-align:center;">Sin registros con decisión <strong>Devolución</strong> en Devolución General.</p>';return;}
   const map={};
   data.forEach(rec=>{
     const pv=rec.proveedor||'(Sin proveedor)';
@@ -1223,8 +1230,8 @@ function renderProvSummary(){
   </table></div>`;
 }
 function exportProvSummaryXL(){
-  const data=R.dg;
-  if(!data.length){showT('⚠️ Sin datos');return;}
+  const data=R.dg.filter(rec=>rec.decision==='Devolución');
+  if(!data.length){showT('⚠️ Sin datos con decisión Devolución');return;}
   const map={};
   data.forEach(rec=>{
     const pv=rec.proveedor||'(Sin proveedor)';
@@ -2152,6 +2159,28 @@ function doSaveWk(){
 // FORMAT HELPERS
 // ─────────────────────────────────────────────
 let _dgSort = 'tienda'; // 'tienda' | 'ref'
+let _rtSort  = 'tienda'; // sort para RT Originales
+let _rtCSort = 'tienda'; // sort para RT Copias por Tienda
+
+function setRTSort(mode){
+  _rtSort = mode;
+  const bt = document.getElementById('rt-sort-tienda');
+  const br = document.getElementById('rt-sort-ref');
+  if(bt) bt.style.background = mode==='tienda' ? '#0369a1' : '#374151';
+  if(br) br.style.background = mode==='ref'    ? '#0369a1' : '#374151';
+  renderRT();
+  showT(mode==='tienda' ? '🏪 Ordenado por Tienda' : '🗂️ Ordenado por Referencia');
+}
+
+function setRTCSort(mode){
+  _rtCSort = mode;
+  const bt = document.getElementById('rtc-sort-tienda');
+  const br = document.getElementById('rtc-sort-ref');
+  if(bt) bt.style.background = mode==='tienda' ? '#0369a1' : '#374151';
+  if(br) br.style.background = mode==='ref'    ? '#0369a1' : '#374151';
+  renderRTCopias();
+  showT(mode==='tienda' ? '🏪 Ordenado por Tienda' : '🗂️ Ordenado por Referencia');
+}
 
 function setDGSort(mode){
   _dgSort = mode;
@@ -2517,17 +2546,26 @@ function renderRTOrigs(origs){
     return;
   }
   let rn=0, cs='', cd='';
-  sortR(filtered).forEach(rec => {
-    if(rec.tienda !== cs){
+  const sortedFiltered = _rtSort==='ref' ? sortRRef(filtered) : sortR(filtered);
+  const groupByTienda  = _rtSort==='tienda';
+  sortedFiltered.forEach(rec => {
+    if(groupByTienda && rec.tienda !== cs){
       cs = rec.tienda; cd='';
       const sr = document.createElement('tr');
       sr.className = 'sh';
       sr.innerHTML = `<td colspan="18">🏪 ${cs}</td>`;
       tb.appendChild(sr);
     }
-    if((rec.dpto||'') !== cd){
+    if(groupByTienda && (rec.dpto||'') !== cd){
       cd = rec.dpto||'';
       if(cd){const dr=document.createElement('tr');dr.className='oh';dr.innerHTML=`<td colspan="18" style="padding-left:22px;">📂 ${esc(cd)}</td>`;tb.appendChild(dr);}
+    }
+    if(!groupByTienda){
+      const newDpto = (rec.dpto||'');
+      if(newDpto !== cd){
+        cd = newDpto;
+        if(cd){const dr=document.createElement('tr');dr.className='oh';dr.innerHTML=`<td colspan="18" style="padding-left:22px;">📂 ${esc(cd)}</td>`;tb.appendChild(dr);}
+      }
     }
     rec.eans.forEach((ean,ei) => { rn++; tb.insertAdjacentHTML('beforeend', mkRow(rec,ean,ei,rn,'rt')); });
   });
@@ -2553,30 +2591,41 @@ function renderRTCopias(){
     return;
   }
 
-  // Agrupar por tienda
+  // Agrupar por tienda o por referencia según sort activo
   let rn = 0;
-  const tiendasEnFiltro = fil ? [fil] : STORES.filter(t => filtered.some(r => r.tienda === t));
-
-  tiendasEnFiltro.forEach(tienda => {
-    const recsT = filtered.filter(r => r.tienda === tienda);
-    if(!recsT.length) return;
-    const enDGcnt = recsT.filter(r => R.dg.some(d => String(d._srcId) === String(r.id))).length;
-    // Cabecera de tienda
-    const hdr = document.createElement('tr');
-    hdr.innerHTML = `<td colspan="19" style="background:#065f46;color:#fff;font-weight:700;font-size:.82rem;padding:7px 12px;letter-spacing:.5px;">
-      🏪 ${tienda} — ${recsT.length} registro(s)${enDGcnt>0?` <span style="background:#a7f3d0;color:#065f46;border-radius:4px;padding:1px 7px;font-size:.72rem;margin-left:6px;">📦 ${enDGcnt} en DG</span>`:''}
-    </td>`;
-    tb.appendChild(hdr);
-
+  if(_rtCSort === 'ref'){
+    // Modo Por Referencia: sin cabeceras de tienda, agrupado por DPTO
+    const sorted = sortRRef(filtered);
     let cd = '';
-    sortR(recsT).forEach(rec => {
+    sorted.forEach(rec => {
       if((rec.dpto||'') !== cd){
         cd = rec.dpto||'';
         if(cd){const dr=document.createElement('tr');dr.className='oh';dr.innerHTML=`<td colspan="19" style="padding-left:22px;">📂 ${esc(cd)}</td>`;tb.appendChild(dr);}
       }
       rec.eans.forEach((ean, ei) => { rn++; tb.insertAdjacentHTML('beforeend', mkRowCopy(rec, ean, ei, rn)); });
     });
-  });
+  } else {
+    // Modo Por Tienda (default): agrupa por tienda luego por DPTO
+    const tiendasEnFiltro = fil ? [fil] : STORES.filter(t => filtered.some(r => r.tienda === t));
+    tiendasEnFiltro.forEach(tienda => {
+      const recsT = filtered.filter(r => r.tienda === tienda);
+      if(!recsT.length) return;
+      const enDGcnt = recsT.filter(r => R.dg.some(d => String(d._srcId) === String(r.id))).length;
+      const hdr = document.createElement('tr');
+      hdr.innerHTML = `<td colspan="19" style="background:#065f46;color:#fff;font-weight:700;font-size:.82rem;padding:7px 12px;letter-spacing:.5px;">
+        🏪 ${tienda} — ${recsT.length} registro(s)${enDGcnt>0?` <span style="background:#a7f3d0;color:#065f46;border-radius:4px;padding:1px 7px;font-size:.72rem;margin-left:6px;">📦 ${enDGcnt} en DG</span>`:''}
+      </td>`;
+      tb.appendChild(hdr);
+      let cd = '';
+      sortR(recsT).forEach(rec => {
+        if((rec.dpto||'') !== cd){
+          cd = rec.dpto||'';
+          if(cd){const dr=document.createElement('tr');dr.className='oh';dr.innerHTML=`<td colspan="19" style="padding-left:22px;">📂 ${esc(cd)}</td>`;tb.appendChild(dr);}
+        }
+        rec.eans.forEach((ean, ei) => { rn++; tb.insertAdjacentHTML('beforeend', mkRowCopy(rec, ean, ei, rn)); });
+      });
+    });
+  }
 }
 
 // Export Excel para copias por tienda (usa el filtro activo)
@@ -4550,6 +4599,14 @@ header span{font-size:.78rem;opacity:.85;}
 .filters select:focus,.filters input:focus{border-color:#cc0000;box-shadow:0 0 0 2px rgba(204,0,0,.1);}
 .btn-reset{background:#cc0000;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:.82rem;font-weight:700;cursor:pointer;margin-top:auto;white-space:nowrap;}
 .btn-reset:hover{background:#991111;}
+.btn-pdf{background:#1e40af;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:.82rem;font-weight:700;cursor:pointer;margin-top:auto;white-space:nowrap;}
+.btn-pdf:hover{background:#1e3a8a;}
+@media print{
+  header,div.filters,div.stats,.card-fotos{display:none!important;}
+  body{background:#fff;}
+  .card{box-shadow:none;border:1px solid #ccc;break-inside:avoid;margin-bottom:8px;}
+  .card-body{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
+}
 .stats{padding:10px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:16px;flex-wrap:wrap;font-size:.75rem;color:#64748b;}
 .stats b{color:#cc0000;font-size:.9rem;}
 main{padding:16px 12px;}
@@ -4625,6 +4682,7 @@ main{padding:16px 12px;}
     <input type="text" id="f-buscar" placeholder="REF, EAN, código..." oninput="filtrar()">
   </label>
   <button class="btn-reset" onclick="resetFiltros()">✕ Limpiar</button>
+  <button class="btn-pdf" onclick="exportarPDF()">📄 Exportar PDF</button>
 </div>
 
 <div class="stats" id="stats"></div>
@@ -4748,6 +4806,45 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft')lbNav(-1);
   if(e.key==='ArrowRight')lbNav(1);
 });
+
+function exportarPDF(){
+  // Abre ventana de impresión con solo las tarjetas filtradas
+  const semLabel = document.querySelector('header span') ? document.querySelector('header span').textContent : '';
+  const printWin = window.open('','_blank','width=900,height=700');
+  const cards = document.getElementById('main').innerHTML;
+  const statsHtml = document.getElementById('stats').innerHTML;
+  printWin.document.write(\`<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8"><title>Deprati — Devoluciones PDF</title>
+  <style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1e293b;font-size:10px;}
+  h1{font-size:13px;font-weight:800;color:#cc0000;margin-bottom:4px;}
+  .meta{font-size:9px;color:#64748b;margin-bottom:8px;}
+  .stats{display:flex;gap:14px;flex-wrap:wrap;font-size:9px;color:#64748b;margin-bottom:10px;padding:6px 10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;}
+  .stats b{color:#cc0000;}
+  .card{background:#fff;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:8px;overflow:hidden;display:flex;break-inside:avoid;}
+  .card-fotos{width:80px;min-width:80px;background:#f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px;}
+  .card-fotos img{width:100%;max-height:65px;object-fit:cover;border-radius:4px;}
+  .card-fotos .no-foto{color:#94a3b8;font-size:7px;text-align:center;}
+  .card-body{flex:1;padding:8px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:4px 10px;}
+  .field{display:flex;flex-direction:column;gap:1px;}
+  .field-lbl{font-size:6.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;}
+  .field-val{font-size:8.5px;color:#1e293b;font-weight:500;word-break:break-word;}
+  .card-num{background:#cc0000;color:#fff;font-size:6.5px;font-weight:800;border-radius:0 0 5px 0;padding:1px 5px;position:absolute;top:0;left:0;}
+  .card{position:relative;}
+  .dec-dev{background:#fee2e2;color:#991b1b;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:700;display:inline-block;}
+  .dec-nodev{background:#dcfce7;color:#166534;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:700;display:inline-block;}
+  .dec-rev{background:#fef9c3;color:#854d0e;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:700;display:inline-block;}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+  </style></head><body>
+  <h1>🏬 DEPRATI — Devoluciones</h1>
+  <div class="meta">\${semLabel} — Registros filtrados: \${_filtered.length}</div>
+  <div class="stats">\${statsHtml}</div>
+  \${cards}
+  <script>window.onload=()=>{ window.print(); }<\/script>
+  </body></html>\`);
+  printWin.document.close();
+}
 
 // Arrancar
 filtrar();
