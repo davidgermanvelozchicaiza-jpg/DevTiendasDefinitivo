@@ -4808,42 +4808,43 @@ document.addEventListener('keydown',e=>{
 });
 
 function exportarPDF(){
-  // Abre ventana de impresión con solo las tarjetas filtradas
   const semLabel = document.querySelector('header span') ? document.querySelector('header span').textContent : '';
-  const printWin = window.open('','_blank','width=900,height=700');
   const cards = document.getElementById('main').innerHTML;
   const statsHtml = document.getElementById('stats').innerHTML;
-  printWin.document.write(\`<!DOCTYPE html><html lang="es"><head>
-  <meta charset="UTF-8"><title>Deprati — Devoluciones PDF</title>
-  <style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1e293b;font-size:10px;}
-  h1{font-size:13px;font-weight:800;color:#cc0000;margin-bottom:4px;}
-  .meta{font-size:9px;color:#64748b;margin-bottom:8px;}
-  .stats{display:flex;gap:14px;flex-wrap:wrap;font-size:9px;color:#64748b;margin-bottom:10px;padding:6px 10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;}
-  .stats b{color:#cc0000;}
-  .card{background:#fff;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:8px;overflow:hidden;display:flex;break-inside:avoid;}
-  .card-fotos{width:80px;min-width:80px;background:#f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px;}
-  .card-fotos img{width:100%;max-height:65px;object-fit:cover;border-radius:4px;}
-  .card-fotos .no-foto{color:#94a3b8;font-size:7px;text-align:center;}
-  .card-body{flex:1;padding:8px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:4px 10px;}
-  .field{display:flex;flex-direction:column;gap:1px;}
-  .field-lbl{font-size:6.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;}
-  .field-val{font-size:8.5px;color:#1e293b;font-weight:500;word-break:break-word;}
-  .card-num{background:#cc0000;color:#fff;font-size:6.5px;font-weight:800;border-radius:0 0 5px 0;padding:1px 5px;position:absolute;top:0;left:0;}
-  .card{position:relative;}
-  .dec-dev{background:#fee2e2;color:#991b1b;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:700;display:inline-block;}
-  .dec-nodev{background:#dcfce7;color:#166534;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:700;display:inline-block;}
-  .dec-rev{background:#fef9c3;color:#854d0e;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:700;display:inline-block;}
-  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
-  </style></head><body>
-  <h1>🏬 DEPRATI — Devoluciones</h1>
-  <div class="meta">\${semLabel} — Registros filtrados: \${_filtered.length}</div>
-  <div class="stats">\${statsHtml}</div>
-  \${cards}
-  <script>window.onload=()=>{ window.print(); }<\/script>
-  </body></html>\`);
+  const css = [
+    '*{box-sizing:border-box;margin:0;padding:0;}',
+    'body{font-family:Segoe UI,Arial,sans-serif;background:#fff;color:#1e293b;font-size:10px;}',
+    'h1{font-size:13px;font-weight:800;color:#cc0000;margin-bottom:4px;}',
+    '.meta{font-size:9px;color:#64748b;margin-bottom:8px;}',
+    '.stats{display:flex;gap:14px;flex-wrap:wrap;font-size:9px;color:#64748b;margin-bottom:10px;padding:6px 10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;}',
+    '.stats b{color:#cc0000;}',
+    '.card{background:#fff;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:8px;overflow:hidden;display:flex;break-inside:avoid;position:relative;}',
+    '.card-fotos{width:80px;min-width:80px;background:#f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px;}',
+    '.card-fotos img{width:100%;max-height:65px;object-fit:cover;border-radius:4px;}',
+    '.card-fotos .no-foto{color:#94a3b8;font-size:7px;text-align:center;}',
+    '.card-body{flex:1;padding:8px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:4px 10px;}',
+    '.field{display:flex;flex-direction:column;gap:1px;}',
+    '.field-lbl{font-size:6.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;}',
+    '.field-val{font-size:8.5px;color:#1e293b;font-weight:500;word-break:break-word;}',
+    '.card-num{background:#cc0000;color:#fff;font-size:6.5px;font-weight:800;border-radius:0 0 5px 0;padding:1px 5px;position:absolute;top:0;left:0;}',
+    '.dec-dev{background:#fee2e2;color:#991b1b;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:700;display:inline-block;}',
+    '.dec-nodev{background:#dcfce7;color:#166534;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:700;display:inline-block;}',
+    '.dec-rev{background:#fef9c3;color:#854d0e;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:700;display:inline-block;}',
+    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
+  ].join('');
+  const body = [
+    '<h1>🏬 DEPRATI — Devoluciones</h1>',
+    '<div class="meta">' + semLabel + ' — Registros filtrados: ' + _filtered.length + '</div>',
+    '<div class="stats">' + statsHtml + '</div>',
+    cards
+  ].join('');
+  const page = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    '<title>Deprati Devoluciones PDF</title>' +
+    '<style>' + css + '</style></head><body>' + body + '</body></html>';
+  const printWin = window.open('','_blank','width=900,height=700');
+  printWin.document.write(page);
   printWin.document.close();
+  printWin.onload = function(){ printWin.print(); };
 }
 
 // Arrancar
