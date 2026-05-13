@@ -2701,7 +2701,7 @@ async function exportPDFTienda(){
     doc.setFont(undefined,'normal');return hy+HH;
   }
   let pn=1,y=drawHdr(3,pn),rn=0;
-  for(const rec of sortR(data)){
+  for(const rec of (_rtCSort==='ref'?sortRRef(data):sortR(data))){
     for(const ean of (rec.eans||[{ean:'',cantidad:'',pvp:''}])){
       rn++;
       const tot=(parseFloat(ean.cantidad)||0)*(parseFloat(ean.pvp)||0);
@@ -3410,7 +3410,7 @@ function exportXL(mode){
   function buildRows(recs, isDG){
     const hdr=isDG?hdrDG:hdrBase;
     const rows=[hdr];let rn=0;
-    (mode==='dg'?sortDG(recs):sortR(recs)).forEach(rec=>(rec.eans||[{ean:'',cantidad:'',pvp:''}]).forEach(ean=>{
+    (mode==='dg'?sortDG(recs):(mode==='rt'&&_rtSort==='ref'?sortRRef(recs):sortR(recs))).forEach(rec=>(rec.eans||[{ean:'',cantidad:'',pvp:''}]).forEach(ean=>{
       rn++;const tot=(parseFloat(ean.cantidad)||0)*(parseFloat(ean.pvp)||0);
       const base=[rn,rec.semana,rec.tienda,rec.dpto||'',rec.codigo||'',rec.proveedor||'',rec.ref||'',rec.semIngreso||'',
         ean.ean||'',ean.cantidad||'',fPVP(ean).replace('$',''),tot?'$'+tot.toFixed(2):'',
@@ -3518,7 +3518,7 @@ async function exportPDF(mode){
 
   async function drawRows(doc,recs,startY,pageNum,color){
     let y=startY,rn=0;
-    for(const rec of (mode==='dg'?sortDG(recs):sortR(recs))){
+    for(const rec of (mode==='dg'?sortDG(recs):(_rtSort==='ref'?sortRRef(recs):sortR(recs)))){
       for(const ean of (rec.eans||[{ean:'',cantidad:'',pvp:''}])){
         rn++;
         const RH=calcRH(rec,ean);
@@ -3581,7 +3581,7 @@ async function exportPDF(mode){
     }
   } else {
     let rn=0;
-    for(const rec of (mode==='dg'?sortDG(data):sortR(data))){
+    for(const rec of (mode==='dg'?sortDG(data):(_rtSort==='ref'?sortRRef(data):sortR(data)))){
       for(const ean of (rec.eans||[{ean:'',cantidad:'',pvp:''}])){
         rn++;
         const RH=calcRH(rec,ean);
