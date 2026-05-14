@@ -149,7 +149,40 @@ nav.mn button.act::after{content:'';position:absolute;bottom:0;left:50%;transfor
 .bw{background:#5b21b6;color:#fff;} .bw:hover{background:#4c1d95;}
 .bnw{background:#0369a1;color:#fff;} .bnw:hover{background:#075985;}
 .borg{background:#ea580c;color:#fff;} .borg:hover{background:#c2410c;}
-/* TABLE */
+/* ── Botones dentro de filas de registros: sin escala ni salto al hacer hover ── */
+.rw .btn:hover{transform:none !important;box-shadow:none !important;}
+.rw .btn:hover .ic{font-size:.95rem !important;transform:none !important;}
+.rw .btn{position:relative;}
+/* Tooltip CSS puro para botones en tabla de registros */
+.rw .btn[title]:hover::after{
+  content:attr(title);
+  position:absolute;
+  bottom:calc(100% + 5px);
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(30,30,30,.92);
+  color:#fff;
+  font-size:.62rem;
+  font-weight:600;
+  white-space:nowrap;
+  padding:3px 8px;
+  border-radius:5px;
+  pointer-events:none;
+  z-index:9999;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+  letter-spacing:.1px;
+}
+.rw .btn[title]:hover::before{
+  content:'';
+  position:absolute;
+  bottom:calc(100% + 1px);
+  left:50%;
+  transform:translateX(-50%);
+  border:4px solid transparent;
+  border-top-color:rgba(30,30,30,.92);
+  pointer-events:none;
+  z-index:9999;
+}
 .rw{overflow-x:auto;margin-top:12px;border-radius:12px;box-shadow:var(--sh);}
 table{width:100%;border-collapse:collapse;background:#fff;font-size:.73rem;}
 thead tr{background:var(--rojo);color:#fff;}
@@ -2273,7 +2306,7 @@ function mkRow(rec,ean,ei,rn,tabKey){
     <td><input class="ie" value="${esc(rec.proveedor)}" oninput="eF('${tabKey}','${rid}','proveedor',this.value)" style="width:90px;"></td>
     <td><input class="ie" value="${esc(rec.ref)}" oninput="eF('${tabKey}','${rid}','ref',this.value)" style="width:48px;"></td>
     <td><input class="ie" value="${esc(rec.semIngreso)}" oninput="eF('${tabKey}','${rid}','semIngreso',this.value)" style="width:52px;"></td>
-    <td><div class="er" style="display:flex;flex-direction:column;gap:2px;"><input class="ei ie" value="${esc(ean.ean)}" oninput="eE('${tabKey}','${rid}',${eid},'ean',this.value)" style="width:142px;"><button type="button" onclick="openBarcodeScanner('${tabKey}',this)" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:2px 4px;font-size:.6rem;font-weight:700;cursor:pointer;width:100%;white-space:nowrap;">📷 Escanear</button></div></td>
+    <td><div class="er" style="display:flex;flex-direction:column;gap:2px;"><input class="ei ie" value="${esc(ean.ean)}" oninput="eE('${tabKey}','${rid}',${eid},'ean',this.value)" style="width:142px;"><button type="button" onclick="openBarcodeScanner('${tabKey}',this)" title="Escanear código de barras con la cámara" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:2px 4px;font-size:.6rem;font-weight:700;cursor:pointer;width:100%;white-space:nowrap;">📷 Escanear</button></div></td>
     <td><div style="display:flex;gap:2px;align-items:center;"><input class="ie" type="text" inputmode="numeric" value="${esc(ean.cantidad)}" oninput="eEC('${tabKey}','${rid}',${eid},'cantidad',this)" style="width:52px;"><button type="button" onclick="(()=>{const inp=this.previousElementSibling;inp.value='Toda la Referencia';inp.dispatchEvent(new Event('input'));})()" style="background:#555;color:#fff;border:none;border-radius:4px;padding:1px 3px;font-size:.58rem;cursor:pointer;white-space:nowrap;line-height:1.4;">📦</button></div></td>
     <td><input class="ie" type="number" value="${esc(ean.pvp)}" step="0.01" oninput="eEC('${tabKey}','${rid}',${eid},'pvp',this)" style="width:62px;"></td>
     <td id="pt-${rid}-${eid}" style="font-weight:700;color:#3b0764;">${fTot(ean)}</td>
@@ -2325,7 +2358,7 @@ function mkRowDG(rec,ean,ei,rn){
     <td><input class="ie" value="${esc(rec.proveedor)}" oninput="eF('dg','${rid}','proveedor',this.value)" style="width:90px;"></td>
     <td><input class="ie" value="${esc(rec.ref)}" oninput="eF('dg','${rid}','ref',this.value)" style="width:48px;"></td>
     <td><input class="ie" value="${esc(rec.semIngreso)}" oninput="eF('dg','${rid}','semIngreso',this.value)" style="width:52px;"></td>
-    <td><div class="er" style="display:flex;flex-direction:column;gap:2px;"><input class="ei ie" value="${esc(ean.ean)}" oninput="eE('dg','${rid}',${eid},'ean',this.value)" style="width:142px;"><button type="button" onclick="openBarcodeScanner('dg',this)" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:2px 4px;font-size:.6rem;font-weight:700;cursor:pointer;width:100%;white-space:nowrap;">📷 Escanear</button></div></td>
+    <td><div class="er" style="display:flex;flex-direction:column;gap:2px;"><input class="ei ie" value="${esc(ean.ean)}" oninput="eE('dg','${rid}',${eid},'ean',this.value)" style="width:142px;"><button type="button" onclick="openBarcodeScanner('dg',this)" title="Escanear código de barras con la cámara" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:2px 4px;font-size:.6rem;font-weight:700;cursor:pointer;width:100%;white-space:nowrap;">📷 Escanear</button></div></td>
     <td><div style="display:flex;gap:2px;align-items:center;"><input class="ie" type="text" inputmode="numeric" value="${esc(ean.cantidad)}" oninput="eEC('dg','${rid}',${eid},'cantidad',this)" style="width:52px;"><button type="button" onclick="(()=>{const inp=this.previousElementSibling;inp.value='Toda la Referencia';inp.dispatchEvent(new Event('input'));})()" style="background:#555;color:#fff;border:none;border-radius:4px;padding:1px 3px;font-size:.58rem;cursor:pointer;white-space:nowrap;line-height:1.4;">📦</button></div></td>
     <td><input class="ie" type="number" value="${esc(ean.pvp)}" step="0.01" oninput="eEC('dg','${rid}',${eid},'pvp',this)" style="width:62px;"></td>
     <td id="pt-${rid}-${eid}" style="font-weight:700;color:#3b0764;">${fTot(ean)}</td>
@@ -2400,7 +2433,7 @@ function mkRowCopy(rec, ean, ei, rn){
     <td><input class="ie" value="${esc(rec.proveedor)}" oninput="eF('rt','${rid}','proveedor',this.value)" style="width:90px;"></td>
     <td><input class="ie" value="${esc(rec.ref)}" oninput="eF('rt','${rid}','ref',this.value)" style="width:48px;"></td>
     <td><input class="ie" value="${esc(rec.semIngreso)}" oninput="eF('rt','${rid}','semIngreso',this.value)" style="width:52px;"></td>
-    <td><div class="er" style="display:flex;flex-direction:column;gap:2px;"><input class="ei ie" value="${esc(ean.ean)}" oninput="eE('rt','${rid}',${eid},'ean',this.value)" style="width:142px;"><button type="button" onclick="openBarcodeScanner('rt',this)" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:2px 4px;font-size:.6rem;font-weight:700;cursor:pointer;width:100%;white-space:nowrap;">📷 Escanear</button></div></td>
+    <td><div class="er" style="display:flex;flex-direction:column;gap:2px;"><input class="ei ie" value="${esc(ean.ean)}" oninput="eE('rt','${rid}',${eid},'ean',this.value)" style="width:142px;"><button type="button" onclick="openBarcodeScanner('rt',this)" title="Escanear código de barras con la cámara" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:2px 4px;font-size:.6rem;font-weight:700;cursor:pointer;width:100%;white-space:nowrap;">📷 Escanear</button></div></td>
     <td><div style="display:flex;gap:2px;align-items:center;"><input class="ie" type="text" inputmode="numeric" value="${esc(ean.cantidad)}" oninput="eEC('rt','${rid}',${eid},'cantidad',this)" style="width:52px;"><button type="button" onclick="(()=>{const inp=this.previousElementSibling;inp.value='Toda la Referencia';inp.dispatchEvent(new Event('input'));})()" style="background:#555;color:#fff;border:none;border-radius:4px;padding:1px 3px;font-size:.58rem;cursor:pointer;white-space:nowrap;line-height:1.4;">📦</button></div></td>
     <td><input class="ie" type="number" value="${esc(ean.pvp)}" step="0.01" oninput="eEC('rt','${rid}',${eid},'pvp',this)" style="width:62px;"></td>
     <td id="pt-${rid}-${eid}" style="font-weight:700;color:#3b0764;">${fTot(ean)}</td>
@@ -2899,7 +2932,7 @@ function renderREQ(){
         <td><input class="ie" value="${esc(rec.proveedor)}" oninput="eF('req','${rid}','proveedor',this.value)" style="width:90px;"></td>
         <td><input class="ie" value="${esc(rec.ref)}" oninput="eF('req','${rid}','ref',this.value)" style="width:48px;"></td>
         <td><input class="ie" value="${esc(rec.semIngreso)}" oninput="eF('req','${rid}','semIngreso',this.value)" style="width:52px;"></td>
-        <td><div class="er" style="display:flex;flex-direction:column;gap:2px;"><input class="ei ie" value="${esc(ean.ean)}" oninput="eE('req','${rid}',${ei},'ean',this.value)" style="width:142px;"><button type="button" onclick="openBarcodeScanner('req',this)" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:2px 4px;font-size:.6rem;font-weight:700;cursor:pointer;width:100%;white-space:nowrap;">📷 Escanear</button></div></td>
+        <td><div class="er" style="display:flex;flex-direction:column;gap:2px;"><input class="ei ie" value="${esc(ean.ean)}" oninput="eE('req','${rid}',${ei},'ean',this.value)" style="width:142px;"><button type="button" onclick="openBarcodeScanner('req',this)" title="Escanear código de barras con la cámara" style="background:#0369a1;color:#fff;border:none;border-radius:4px;padding:2px 4px;font-size:.6rem;font-weight:700;cursor:pointer;width:100%;white-space:nowrap;">📷 Escanear</button></div></td>
         <td><div style="display:flex;gap:2px;align-items:center;"><input class="ie" type="text" inputmode="numeric" value="${esc(ean.cantidad)}" oninput="eEC('req','${rid}',${ei},'cantidad',this)" style="width:52px;"><button type="button" onclick="(()=>{const inp=this.previousElementSibling;inp.value='Toda la Referencia';inp.dispatchEvent(new Event('input'));})()" style="background:#555;color:#fff;border:none;border-radius:4px;padding:1px 3px;font-size:.58rem;cursor:pointer;white-space:nowrap;line-height:1.4;">📦</button></div></td>
         <td><input class="ie" type="number" value="${esc(ean.pvp)}" step="0.01" oninput="eEC('req','${rid}',${ei},'pvp',this)" style="width:62px;"></td>
         <td id="pt-${rid}-${ei}" style="font-weight:700;color:#3b0764;">${tot?'$'+tot.toFixed(2):''}</td>
