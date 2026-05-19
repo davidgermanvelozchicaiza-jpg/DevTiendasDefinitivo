@@ -3021,6 +3021,8 @@ document.addEventListener('focusout', e=>{
   }
 });
 
+const _debT={};
+function debSave(key,fn,ms=800){
   clearTimeout(_debT[key]);
   _debT[key]=setTimeout(fn,ms);
 }
