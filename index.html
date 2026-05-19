@@ -1248,18 +1248,27 @@ function renderProvSummary(){
   const map={};
   data.forEach(rec=>{
     const pv=rec.proveedor||'(Sin proveedor)';
-    if(!map[pv]) map[pv]={proveedor:pv,total:0,cantidad:0,registros:0};
+    const cod=rec.codigo||'—';
+    const key=cod+'||'+pv;
+    if(!map[key]) map[key]={codPv:cod,proveedor:pv,total:0,cantidad:0,registros:0};
     (rec.eans||[]).forEach(e=>{
       const c=parseFloat(e.cantidad)||0,p=parseFloat(e.pvp)||0;
-      map[pv].total+=c*p;map[pv].cantidad+=c;map[pv].registros++;
+      map[key].total+=c*p;map[key].cantidad+=c;map[key].registros++;
     });
   });
   const rows=Object.values(map).sort((a,b)=>b.total-a.total);
   const grandTotal=rows.reduce((s,r)=>s+r.total,0);
   wrap.innerHTML=`<div class="rw"><table class="prov-sum-table">
-    <thead><tr><th>#</th><th>Proveedor</th><th>Registros</th><th>Cant. Total</th><th>PVP Total $</th></tr></thead>
-    <tbody>${rows.map((r,i)=>`<tr><td>${i+1}</td><td><strong>${esc(r.proveedor)}</strong></td><td>${r.registros}</td><td>${r.cantidad}</td><td style="font-weight:700;color:#3b0764;">$${r.total.toFixed(2)}</td></tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="4" style="text-align:right;font-weight:700;">TOTAL GENERAL:</td><td style="font-weight:700;color:#cc0000;font-size:1rem;">$${grandTotal.toFixed(2)}</td></tr></tfoot>
+    <thead><tr><th>#</th><th>Código</th><th>Proveedor</th><th>Registros</th><th>Cant. Total</th><th>PVP Total $</th></tr></thead>
+    <tbody>${rows.map((r,i)=>`<tr>
+      <td>${i+1}</td>
+      <td style="font-weight:700;color:#0369a1;">${esc(r.codPv)}</td>
+      <td><strong>${esc(r.proveedor)}</strong></td>
+      <td>${r.registros}</td>
+      <td>${r.cantidad}</td>
+      <td style="font-weight:700;color:#3b0764;">$${r.total.toFixed(2)}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="5" style="text-align:right;font-weight:700;">TOTAL GENERAL:</td><td style="font-weight:700;color:#cc0000;font-size:1rem;">$${grandTotal.toFixed(2)}</td></tr></tfoot>
   </table></div>`;
 }
 function exportProvSummaryXL(){
@@ -1268,13 +1277,17 @@ function exportProvSummaryXL(){
   const map={};
   data.forEach(rec=>{
     const pv=rec.proveedor||'(Sin proveedor)';
-    if(!map[pv])map[pv]={proveedor:pv,total:0,cantidad:0,registros:0};
-    (rec.eans||[]).forEach(e=>{const c=parseFloat(e.cantidad)||0,p=parseFloat(e.pvp)||0;map[pv].total+=c*p;map[pv].cantidad+=c;map[pv].registros++;});
+    const cod=rec.codigo||'—';
+    const key=cod+'||'+pv;
+    if(!map[key]) map[key]={codPv:cod,proveedor:pv,total:0,cantidad:0,registros:0};
+    (rec.eans||[]).forEach(e=>{const c=parseFloat(e.cantidad)||0,p=parseFloat(e.pvp)||0;map[key].total+=c*p;map[key].cantidad+=c;map[key].registros++;});
   });
-  const rows=[['#','Proveedor','Registros','Cantidad Total','PVP Total']];
-  let i=1;Object.values(map).sort((a,b)=>b.total-a.total).forEach(r=>{rows.push([i++,r.proveedor,r.registros,r.cantidad,'$'+r.total.toFixed(2)]);});
+  const rows=[['#','Código','Proveedor','Registros','Cantidad Total','PVP Total']];
+  let i=1;Object.values(map).sort((a,b)=>b.total-a.total).forEach(r=>{
+    rows.push([i++,r.codPv,r.proveedor,r.registros,r.cantidad,'$'+r.total.toFixed(2)]);
+  });
   const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[5,30,12,14,14].map(w=>({wch:w}));
+  ws['!cols']=[5,14,30,12,14,14].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,ws,'Valores por Proveedor');
   XLSX.writeFile(wb,`Deprati_DG_Proveedores_${new Date().toLocaleDateString('es-EC').replace(/\//g,'-')}.xlsx`);
   showT('📊 Excel exportado');
@@ -2980,8 +2993,34 @@ function sendReqTo(rid,dest){
 // INLINE EDIT FUNCTIONS — completamente reactivos
 // ─────────────────────────────────────────────
 
-const _debT={};
-function debSave(key,fn,ms=800){
+// ── Bandera global: true mientras el usuario tiene foco en un input de registro ──
+let _editing = false;
+let _pendingRender = {rt:false, dg:false, rs:false, req:false};
+
+function _guardRender(tab, renderFn){
+  if(_editing){ _pendingRender[tab]=true; return; }
+  renderFn();
+}
+
+// Cuando un input de registro gana foco: pausar re-renders
+document.addEventListener('focusin', e=>{
+  if(e.target.closest('.rw')) _editing=true;
+});
+
+// Cuando pierde foco: reanudar y aplicar renders pendientes
+document.addEventListener('focusout', e=>{
+  if(e.target.closest('.rw')){
+    // pequeño delay para que onblur del campo dispare primero
+    setTimeout(()=>{
+      _editing=false;
+      if(_pendingRender.rt){ _pendingRender.rt=false; renderRT(); }
+      if(_pendingRender.dg){ _pendingRender.dg=false; renderDG(); }
+      if(_pendingRender.rs){ _pendingRender.rs=false; renderRS(); }
+      if(_pendingRender.req){ _pendingRender.req=false; renderREQ(); updateBell(); }
+    }, 120);
+  }
+});
+
   clearTimeout(_debT[key]);
   _debT[key]=setTimeout(fn,ms);
 }
@@ -3954,11 +3993,11 @@ function loadStorage(){
     REF_R.child('rt').on('value', snap=>{
       R.rt=snap.val()?Object.values(snap.val()):[];
       try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
-      renderRT();
+      _guardRender('rt', renderRT);
       fbSetStatus('ok','✅ Sincronizado',new Date().toLocaleString('es-EC'));
     }, ()=>{
       try{const d=JSON.parse(localStorage.getItem('dr')||'{}');R.rt=d.rt||[];}catch(e){}
-      renderRT();
+      _guardRender('rt', renderRT);
       fbSetStatus('err','⚠️ Sin conexión','');
     });
 
@@ -3969,29 +4008,29 @@ function loadStorage(){
       R.dg=snap.val()?Object.values(snap.val()):[];
       try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
       updateDGStatusBanner();
-      renderDG();
+      _guardRender('dg', renderDG);
       autoFiltrarDGPorTienda();
     }, ()=>{
       try{const d=JSON.parse(localStorage.getItem('dr')||'{}');R.dg=d.dg||[];}catch(e){}
-      renderDG();
+      _guardRender('dg', renderDG);
     });
   REF_R.child('rs').on('value', snap=>{
       R.rs = snap.val() ? Object.values(snap.val()) : [];
       try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
-      renderRS();
+      _guardRender('rs', renderRS);
     }, ()=>{
       try{const d=JSON.parse(localStorage.getItem('dr')||'{}');R.rs=d.rs||[];}catch(e){}
-      renderRS();
+      _guardRender('rs', renderRS);
     });
 
     // Listener REQ
     REF_R.child('req').on('value', snap=>{
       R.req = snap.val() ? Object.values(snap.val()) : [];
       try{localStorage.setItem('dr',JSON.stringify(R));}catch(e){}
-      renderREQ(); updateBell();
+      _guardRender('req', ()=>{ renderREQ(); updateBell(); });
     }, ()=>{
       try{const d=JSON.parse(localStorage.getItem('dr')||'{}');R.req=d.req||[];}catch(e){}
-      renderREQ(); updateBell();
+      _guardRender('req', ()=>{ renderREQ(); updateBell(); });
     });
   }
 
